@@ -1,8 +1,7 @@
 import { health } from '#/routes/health.js'
-import { example } from '#/routes/example.js'
 import { cphs } from '../routes/api/cphs.js'
 
-const routes = [health, example, cphs].flat()
+const routes = [health, ...cphs]
 
 export const router = {
   plugin: {
