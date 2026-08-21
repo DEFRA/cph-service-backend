@@ -4,7 +4,7 @@ export const cphs = [
   {
     method: 'GET',
     path: '/api/cphs',
-    handler: async (request, h) => {      
+    handler: async (request, h) => {
       return h.response({ cphs: cphStore })
     }
   },
