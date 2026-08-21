@@ -6,9 +6,8 @@ export const example = [
     method: 'GET',
     path: '/example',
     handler: async (request, h) => {
-      // const entities = await findAllExampleData(request.db)
-      // return h.response(entities)
-      return h.response('example page test123')
+      const entities = await findAllExampleData(request.db)
+      return h.response(entities)
     }
   },
   {
