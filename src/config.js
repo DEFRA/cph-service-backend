@@ -119,6 +119,14 @@ export const config = convict({
     default: null,
     env: 'HTTP_PROXY'
   },
+  sqs: {
+    queueUrl: {
+      doc: 'URL of the SQS queue to consume messages from',
+      format: String,
+      default: '',
+      env: 'SQS_QUEUE_URL'
+    }
+  },
   tracing: {
     header: {
       doc: 'CDP tracing header name',
