@@ -125,6 +125,12 @@ export const config = convict({
       format: String,
       default: '',
       env: 'SQS_QUEUE_URL'
+    },
+    awsRegion: {
+      doc: 'AWS region for the SQS queue',
+      format: String,
+      default: 'eu-west-2',
+      env: 'AWS_REGION'
     }
   },
   tracing: {

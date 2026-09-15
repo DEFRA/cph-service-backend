@@ -12,14 +12,14 @@ export const consumer = {
     name: 'sqs-consumer',
     version: '1.0.0',
     register: async function (server, options) {
-      const { queueUrl } = options
+      const { queueUrl, awsRegion } = options
 
       if (!queueUrl) {
         server.logger.info('No SQS queue url configured, skipping consumer')
         return
       }
 
-      const client = new SQSClient()
+      const client = new SQSClient({ region: awsRegion })
       let polling = true
 
       server.logger.info(`Listening to SQS queue ${queueUrl}`)
@@ -51,7 +51,13 @@ async function pollQueue(client, queueUrl, logger, isPolling) {
       })
     )
 
+    if (Messages?.length > 0) {
+      logger.info(`Received ${Messages?.length ?? 0} messages from SQS`)
+    }
+      
     for (const message of Messages ?? []) {
+      logger.info(message)
+      
       const body = JSON.parse(message.Body)
       logger.info(body)
 

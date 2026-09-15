@@ -4,4 +4,4 @@
 #aws s3 mb s3://my-bucket
 
 # SQS queues
-#aws sqs create-queue --queue-name my-queue
+aws sqs create-queue --queue-name cph-form --endpoint-url http://localhost:4566
