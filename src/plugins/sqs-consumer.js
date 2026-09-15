@@ -55,11 +55,8 @@ async function pollQueue(client, queueUrl, logger, isPolling) {
       logger.info(`Received ${Messages?.length ?? 0} messages from SQS`)
     }
       
-    for (const message of Messages ?? []) {
-      logger.info(message)
-      
-      const body = JSON.parse(message.Body)
-      logger.info(body)
+    for (const message of Messages ?? []) {            
+      logger.info(message.Body)
 
       await client.send(
         new DeleteMessageCommand({
