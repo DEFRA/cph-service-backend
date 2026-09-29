@@ -1,6 +1,8 @@
 import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
 
+import { MAP_DATA_COLLECTION } from '#/services/mapData.js'
+
 export const mongoDb = {
   plugin: {
     name: 'mongodb',
@@ -16,6 +18,7 @@ export const mongoDb = {
       const db = client.db(databaseName)
       const locker = new LockManager(db.collection('mongo-locks'))
 
+      await createCollection(db, MAP_DATA_COLLECTION)
       await createIndexes(db)
 
       server.logger.info(`MongoDb connected to ${databaseName}`)
@@ -35,6 +38,16 @@ export const mongoDb = {
         }
       })
     }
+  }
+}
+
+export async function createCollection(db, collectionName) {
+  const collections = await db
+    .listCollections({ name: collectionName }, { nameOnly: true })
+    .toArray()
+
+  if (collections.length === 0) {
+    await db.createCollection(collectionName)
   }
 }
 

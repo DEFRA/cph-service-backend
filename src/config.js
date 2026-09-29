@@ -140,6 +140,20 @@ export const config = convict({
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
     }
+  },
+  mapData: {
+    geoJsonPath: {
+      doc: 'Path to the MAFF parishes GeoJSON loaded at startup',
+      format: String,
+      default: 'geospatial-data/MAFF_Parishes_1998_PseudoCode.geojson',
+      env: 'MAP_DATA_GEOJSON_PATH'
+    },
+    ostn15Path: {
+      doc: 'Path to the OSTN15 NTv2 grid shift file used for OSGB36 to WGS84 conversion',
+      format: String,
+      default: 'geospatial-data/OSTN15_NTv2_OSGBtoETRS.gsb',
+      env: 'MAP_DATA_OSTN15_PATH'
+    }
   }
 })
 
