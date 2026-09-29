@@ -3,6 +3,10 @@ import Boom from '@hapi/boom'
 import { secureContext } from '@defra/hapi-secure-context'
 import { config } from '#/config.js'
 import { mongoDb } from '#/plugins/mongodb.js'
+import { mapData } from '#/plugins/map-data.js'
+import { failAction } from '#/common/helpers/fail-action.js'
+import { pulse } from '#/plugins/pulse.js'
+import { requestTracing } from '#/plugins/request-tracing.js'
 import { metrics } from '@defra/cdp-metrics'
 import { consumer } from './plugins/sqs-consumer.js'
 import hapiPino from 'hapi-pino'
@@ -59,6 +63,10 @@ export async function createServer () {
     { plugin: hapiTracing.plugin, options: { tracingHeader: config.get('tracing.header') } },
     { plugin: hapiPulse, options: { logger: server.logger, timeout: tenSeconds } },
     { plugin: mongoDb, options: config.get('mongo') },
+    {
+      plugin: mapData,
+      options: config.get('mapData')
+    },
     { plugin: consumer, options: config.get('sqs') }
   ])
 

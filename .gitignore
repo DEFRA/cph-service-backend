@@ -9,3 +9,6 @@ coverage
 .cache
 .eslintcache
 .env
+
+# Source geospatial data, too large for git (261MB geojson, 15MB OSTN15 grid)
+geospatial-data
