@@ -54,20 +54,26 @@ describe('#insertRawFormSubmission', () => {
         expect(storedSubmission.body).toBe(body)
   })
 
-  test('Does not create or overwrite a record delivered twice', async () => {
+  test('Enforces a unique reference number at the database level', async () => {
         const firstBody = createBody('first test value')
         const secondBody = createBody('changed test value')
 
         await insertRawFormSubmission(server.db, firstBody)
-        await insertRawFormSubmission(server.db, secondBody)
 
-        const storedSubmissions = await collection
-            .find({ referenceNumber })
-            .toArray()
+      await expect(collection.insertOne({
+          referenceNumber,
+          formId,
+          receivedAt: new Date(),
+          body: secondBody
+      })).rejects.toThrow(/E11000|duplicate key/i)
 
-        expect(storedSubmissions).toHaveLength(1)
-        expect(storedSubmissions[0].body).toBe(firstBody)
-    })
+      const storedSubmissions = await collection
+          .find({ referenceNumber })
+          .toArray()
+
+      expect(storedSubmissions).toHaveLength(1)
+      expect(storedSubmissions[0].body).toBe(firstBody)
+  })
 
   test('Rejects malformed JSON without storing it', async () => {
         expect(() => insertRawFormSubmission(server.db, '{invalid')).toThrow()
