@@ -208,7 +208,7 @@ const schema = Joi.object({
    }
    ```
 
-   Note: autoSave must be set to onFocusChane and not afterDelay
+   Note: autoSave must be set to onFocusChange and not afterDelay
 3. Respect the repository's `.editorconfig`.
 4. Do **not** run Prettier on this project. Formatting is handled by ESLint stylistic rules, and running both will conflict.
 
