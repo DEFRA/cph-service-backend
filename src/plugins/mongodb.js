@@ -44,4 +44,8 @@ async function createIndexes (db) {
 
   // Example of how to create a mongodb index. Remove as required
   await db.collection('example-data').createIndex({ id: 1 })
+
+  await db
+    .collection('raw-form-submissions')
+    .createIndex({ referenceNumber: 1 }, { unique: true })
 }

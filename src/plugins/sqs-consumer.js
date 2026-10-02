@@ -4,6 +4,7 @@ import {
   DeleteMessageCommand
 } from '@aws-sdk/client-sqs'
 
+import { insertRawFormSubmission } from '#/services/rawFormSubmissions.js'
 const waitTimeSeconds = 20
 const maxNumberOfMessages = 10
 
@@ -27,6 +28,7 @@ export const consumer = {
       const pollPromise = pollQueue(
         client,
         queueUrl,
+        server.db,
         server.logger,
         () => polling
       )
@@ -41,7 +43,7 @@ export const consumer = {
   }
 }
 
-async function pollQueue (client, queueUrl, logger, isPolling) {
+async function pollQueue(client, queueUrl, db, logger, isPolling) {
   while (isPolling()) {
     const { Messages } = await client.send(
       new ReceiveMessageCommand({
@@ -54,16 +56,43 @@ async function pollQueue (client, queueUrl, logger, isPolling) {
     if (Messages?.length > 0) {
       logger.info(`Received ${Messages?.length ?? 0} messages from SQS`)
     }
-
+      
     for (const message of Messages ?? []) {
-      logger.info(message.Body)
-
-      await client.send(
-        new DeleteMessageCommand({
-          QueueUrl: queueUrl,
-          ReceiptHandle: message.ReceiptHandle
-        })
-      )
+        await processMessage(client, queueUrl, db, logger, message)
     }
+  }
+}
+
+export async function processMessage(
+  client,
+  queueUrl,
+  db,
+  logger,
+  message
+) {
+  try {
+    await insertRawFormSubmission(db, message.Body)
+  } catch (error) {
+    logger.error(
+      error,
+      `Failed to store SQS message ${message.MessageId}; message not deleted`
+    )
+    return
+  }
+
+  logger.info(`Stored SQS message ${message.MessageId} `)
+
+  try {
+    await client.send(
+      new DeleteMessageCommand({
+        QueueUrl: queueUrl,
+        ReceiptHandle: message.ReceiptHandle
+      })
+    )
+  } catch (error) {
+    logger.error(
+      error,
+      `Failed to delete SQS message ${message.MessageId}`
+    )
   }
 }
