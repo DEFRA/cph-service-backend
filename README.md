@@ -15,8 +15,6 @@ Core delivery platform Node.js Backend Template.
   - [Production](#production)
   - [Npm scripts](#npm-scripts)
   - [Update dependencies](#update-dependencies)
-  - [Formatting](#formatting)
-    - [Windows prettier issue](#windows-prettier-issue)
 - [API endpoints](#api-endpoints)
 - [Development helpers](#development-helpers)
   - [MongoDB Locks](#mongodb-locks)
@@ -142,16 +140,6 @@ To update dependencies use [npm-check-updates](https://github.com/raineorshine/n
 
 ```bash
 ncu --interactive --format group
-```
-
-### Formatting
-
-#### Windows prettier issue
-
-If you are having issues with formatting of line breaks on Windows update your global git config by running:
-
-```bash
-git config --global core.autocrlf false
 ```
 
 ## API endpoints
