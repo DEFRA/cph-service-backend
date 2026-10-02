@@ -238,7 +238,7 @@ These assume the following `package.json` scripts:
 
 ## Changing the rules
 
-We deliberately stay close to neostandard's defaults, so overrides should be rare and well justified. Overrides go in the second config object in `eslint.config.js`, referencing rules by their `@stylistic/` name.
+We deliberately stay close to neostandard's defaults, so overrides should be rare and well justified. Overrides go in `eslint.config.js`, referencing rules by their `@stylistic/` name.
 
 Rule changes are made by PR to `eslint.config.js` and this document together. The PR description should explain the reasoning. Any resulting reformat should be a separate formatting-only commit, added to `.git-blame-ignore-revs`.
 
