@@ -208,7 +208,7 @@ const schema = Joi.object({
    }
    ```
 
-   Note: autoSave must be set to onFocusChane and not afterDelay
+   Note: autoSave must be set to onFocusChange and not afterDelay
 3. Respect the repository's `.editorconfig`.
 4. Do **not** run Prettier on this project. Formatting is handled by ESLint stylistic rules, and running both will conflict.
 
@@ -221,11 +221,10 @@ npm run lint:fix    # auto-fix issues
 
 These assume the following `package.json` scripts:
 
-```json
 {
   "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint": "eslint --cache --cache-strategy content \"**/*.{cjs,js}\"",
+    "lint:fix": "npm run lint -- --fix"
   }
 }
 ```
@@ -238,7 +237,7 @@ These assume the following `package.json` scripts:
 
 ## Changing the rules
 
-We deliberately stay close to neostandard's defaults, so overrides should be rare and well justified. Overrides go in the second config object in `eslint.config.js`, referencing rules by their `@stylistic/` name.
+We deliberately stay close to neostandard's defaults, so overrides should be rare and well justified. Overrides go in `eslint.config.js`, referencing rules by their `@stylistic/` name.
 
 Rule changes are made by PR to `eslint.config.js` and this document together. The PR description should explain the reasoning. Any resulting reformat should be a separate formatting-only commit, added to `.git-blame-ignore-revs`.
 
