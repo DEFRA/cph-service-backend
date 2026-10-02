@@ -221,11 +221,10 @@ npm run lint:fix    # auto-fix issues
 
 These assume the following `package.json` scripts:
 
-```json
 {
   "scripts": {
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint": "eslint --cache --cache-strategy content \"**/*.{cjs,js}\"",
+    "lint:fix": "npm run lint -- --fix"
   }
 }
 ```
