@@ -1,4 +1,4 @@
-export async function acquireLock(locker, resource, logger) {
+export async function acquireLock (locker, resource, logger) {
   const lock = await locker.lock(resource)
   if (!lock) {
     if (logger) {
@@ -9,7 +9,7 @@ export async function acquireLock(locker, resource, logger) {
   return lock
 }
 
-export async function requireLock(locker, resource) {
+export async function requireLock (locker, resource) {
   const lock = await locker.lock(resource)
   if (!lock) {
     throw new Error(`Failed to acquire lock for ${resource}`)
