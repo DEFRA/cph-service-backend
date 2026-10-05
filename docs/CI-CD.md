@@ -104,7 +104,7 @@ Environment:
 What it runs:
 - Checks out the code
 - Runs the shared CDP build and publish action:
-  `DEFRA/cdp-build-action/build@main`
+  `DEFRA/cdp-build-action/build@54ced5c5344c8b9620561a1628fe8f3d858e9871` (`v1.5.0`)
 - This is the workflow responsible for the actual build and deployment path for the main branch
 
 Information relating to the [DEFRA/cdp-build-action/build](https://github.com/DEFRA/cdp-build-action/tree/main/build)
