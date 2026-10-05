@@ -2,6 +2,10 @@
 
 Core delivery platform Node.js Backend Template.
 
+- [Process](#process)
+  - [Pull Requests](#pull-requests)
+- [Standards](#standards)
+- [Reference](#reference)
 - [Requirements](#requirements)
   - [Node.js](#nodejs)
 - [Local development](#local-development)
@@ -11,8 +15,6 @@ Core delivery platform Node.js Backend Template.
   - [Production](#production)
   - [Npm scripts](#npm-scripts)
   - [Update dependencies](#update-dependencies)
-  - [Formatting](#formatting)
-    - [Windows prettier issue](#windows-prettier-issue)
 - [API endpoints](#api-endpoints)
 - [Development helpers](#development-helpers)
   - [MongoDB Locks](#mongodb-locks)
@@ -25,6 +27,44 @@ Core delivery platform Node.js Backend Template.
   - [SonarCloud](#sonarcloud)
 - [Licence](#licence)
   - [About the licence](#about-the-licence)
+
+## Process
+
+### Pull Requests
+
+The pull request process is documented here: [Defra Software Development Standards - Pull Requests](https://defra.github.io/software-development-standards/processes/pull_requests/)
+
+#### Branch Naming
+
+Branch names will use the following format.
+
+```
+{type}/{ticket-id}-{description}
+```
+
+- Type: Categorises the intent of the work right away.
+- Ticket ID: Connects the branch to your project management tool (like Jira or GitHub Issues).
+- Description: A short, kebab-case summary of the task.
+
+##### Type
+
+- feat: For introducing new functionality or features.
+- fix: For resolving standard bugs or defects.
+- chore: For maintenance tasks like updating dependencies or documentation.
+
+#### Core Formatting Rules
+
+- Use Lowercase and Hyphens: Write everything in lowercase alphanumeric characters and separate words using hyphens (kebab-case).
+- Avoid Special Characters: Never use spaces, underscores, uppercase letters, or consecutive hyphens.
+- Keep It Concise: Avoid overly long or ambiguous names; state the specific context clearly (e.g., feat/PROJ-123-dark-mode-toggle).
+
+## Standards
+
+- [Style Guide](docs/STYLEGUIDE.md)
+
+## Reference
+
+- [Core Delivery Platform](https://portal.cdp-int.defra.cloud/documentation/README.md)
 
 ## Requirements
 
@@ -100,16 +140,6 @@ To update dependencies use [npm-check-updates](https://github.com/raineorshine/n
 
 ```bash
 ncu --interactive --format group
-```
-
-### Formatting
-
-#### Windows prettier issue
-
-If you are having issues with formatting of line breaks on Windows update your global git config by running:
-
-```bash
-git config --global core.autocrlf false
 ```
 
 ## API endpoints

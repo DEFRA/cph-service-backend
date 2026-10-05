@@ -21,6 +21,7 @@ export const mongoDb = {
       server.logger.info(`MongoDb connected to ${databaseName}`)
 
       server.decorate('server', 'mongoClient', client)
+
       server.decorate('server', 'db', db)
       server.decorate('server', 'locker', locker)
       server.decorate('request', 'db', () => db, { apply: true })
@@ -38,7 +39,7 @@ export const mongoDb = {
   }
 }
 
-async function createIndexes(db) {
+async function createIndexes (db) {
   await db.collection('mongo-locks').createIndex({ id: 1 })
 
   // Example of how to create a mongodb index. Remove as required

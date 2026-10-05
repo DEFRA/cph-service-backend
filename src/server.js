@@ -12,7 +12,7 @@ import { requestTracing } from '#/plugins/request-tracing.js'
 import { metrics } from '@defra/cdp-metrics'
 import { consumer } from './plugins/sqs-consumer.js'
 
-export async function createServer() {
+export async function createServer () {
   const server = Hapi.server({
     host: config.get('host'),
     port: config.get('port'),
