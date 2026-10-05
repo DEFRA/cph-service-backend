@@ -227,7 +227,6 @@ These assume the following `package.json` scripts:
     "lint:fix": "npm run lint -- --fix"
   }
 }
-```
 
 ## Enforcement
 
