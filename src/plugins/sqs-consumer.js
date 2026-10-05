@@ -43,7 +43,7 @@ export const consumer = {
   }
 }
 
-async function pollQueue(client, queueUrl, db, logger, isPolling) {
+async function pollQueue (client, queueUrl, db, logger, isPolling) {
   while (isPolling()) {
     const { Messages } = await client.send(
       new ReceiveMessageCommand({
@@ -56,14 +56,14 @@ async function pollQueue(client, queueUrl, db, logger, isPolling) {
     if (Messages?.length > 0) {
       logger.info(`Received ${Messages?.length ?? 0} messages from SQS`)
     }
-      
+
     for (const message of Messages ?? []) {
-        await processMessage(client, queueUrl, db, logger, message)
+      await processMessage(client, queueUrl, db, logger, message)
     }
   }
 }
 
-export async function processMessage(
+export async function processMessage (
   client,
   queueUrl,
   db,
