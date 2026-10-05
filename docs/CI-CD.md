@@ -60,6 +60,7 @@ What it runs:
 - Validates the Docker image build
 - Runs security audit
 - Runs SonarCloud analysis
+- Publishes the hot fix with `DEFRA/cdp-build-action/build-hotfix@v1.5.0`
 
 Permissions:
 - `id-token: write`
