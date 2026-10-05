@@ -56,7 +56,7 @@ Branch names will use the following format.
 
 - Use Lowercase and Hyphens: Write everything in lowercase alphanumeric characters and separate words using hyphens (kebab-case).
 - Avoid Special Characters: Never use spaces, underscores, uppercase letters, or consecutive hyphens.
-- Keep It Concise: Avoid overly long or ambiguous names; state the specific context clearly (e.g., feature/PROJ-123-dark-mode-toggle).
+- Keep It Concise: Avoid overly long or ambiguous names; state the specific context clearly (e.g., feat/PROJ-123-dark-mode-toggle).
 
 ## Standards
 
