@@ -107,7 +107,7 @@ What it runs:
   `DEFRA/cdp-build-action/build@main`
 - This is the workflow responsible for the actual build and deployment path for the main branch
 
-[Information regarding DEFRA/cdp-build-action/build@main can be found here] (https://github.com/DEFRA/cdp-build-action/tree/main/build)
+Information relating to the [DEFRA/cdp-build-action/build](https://github.com/DEFRA/cdp-build-action/tree/main/build)
 
 Job condition:
 - `if: github.run_number != 1`
