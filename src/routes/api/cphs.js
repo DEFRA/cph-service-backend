@@ -4,7 +4,7 @@ import {
   deleteAllCPHs
 } from '../../services/cphData.js'
 
-export const cphs = [
+export const cphsRoutes = [
   {
     method: 'GET',
     path: '/api/cphs',

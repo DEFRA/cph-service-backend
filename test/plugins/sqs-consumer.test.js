@@ -1,5 +1,5 @@
 import { DeleteMessageCommand } from '@aws-sdk/client-sqs'
-import { processMessage } from './sqs-consumer.js'
+import { processMessage } from '../../src/plugins/sqs-consumer.js'
 import { describe, expect, test, vi } from 'vitest'
 
 const queueUrl = 'http://localhost:4566/000000000000/test-queue'

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest'
-import { insertRawFormSubmission } from './rawFormSubmissions.js'
+import { insertRawFormSubmission } from '../../src/services/rawFormSubmissions.js'
 
 const collectionName = 'raw-form-submissions'
 const referenceNumber = 'TEST-REF-001'

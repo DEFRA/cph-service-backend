@@ -4,7 +4,7 @@ import {
   DeleteMessageCommand
 } from '@aws-sdk/client-sqs'
 
-import { insertRawFormSubmission } from '#/services/rawFormSubmissions.js'
+import { insertRawFormSubmission } from '../services/rawFormSubmissions.js'
 const waitTimeSeconds = 20
 const maxNumberOfMessages = 10
 
