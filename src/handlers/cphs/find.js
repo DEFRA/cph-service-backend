@@ -2,13 +2,13 @@ import Boom from '@hapi/boom'
 
 const CPH_COLLECTION = 'example-data'
 
-export function findCPHs (request, h) {
+export async function findCPHs (request, h) {
   try {
-    let cphs = request.db
+    let cphs = await request.db
       .collection(CPH_COLLECTION)
       .find({}, { projection: { _id: 0 } })
 
-    cphs = cphs.toArray()
+    cphs = await cphs.toArray()
     cphs = cphs.map((cph) => cph.cph)
 
     request.logger.info(`Fetched ${cphs.length} CPHs`)
