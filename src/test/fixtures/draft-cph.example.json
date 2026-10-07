@@ -1,0 +1,74 @@
+{
+  "_id": "iXNipKABbDsis8iOSTEf",
+  "_schemaversion": 1,
+  "_lifecycleStatus": "Draft",
+  "_source": {
+    "rawSubmissionId": "6ac4cc0b3fce9c6b24a382b5P",
+    "applicationReference": "D8R-F92-46P",
+    "formId": "6a980cc01db4dc2e19b44fdb",
+    "formVersion": "2",
+    "receivedAt": "2026-10-06T10:23:07.538Z"
+    },
+    "parties": [
+        {
+            "partyType": "Person",
+            "roles": ["Keeper"],
+            "name": {
+                "firstName": "John",
+                "last": "Doe"
+            },
+            "identifiers": [
+                {
+                    "type": "CRN",
+                    "value": "1000000001"
+                }
+            ],
+            "contact": {
+                "emailAddresses": [
+                    {
+                        "address": "john.doe@example.com"
+                    }
+                ],
+                "phoneNumbers": [
+                    {
+                        "number": "+1234567890"
+                    }
+                ],
+                "postalAddresses": [
+                    {
+                        "street": "The Barn",
+                        "city": "Scunthorpe",
+                        "postalCode": "DN15 0DH",
+                        "country": "UK"
+                    }
+                ]
+            }
+        }
+    ],
+    "locations": [
+        {
+            "locationId": "LOC-12345",
+            "geometry": {
+                "easting": "248741",
+                "northing": "412345"
+            },
+            "landOwnership": {
+                "ownedByApplicant": true
+            }
+        }
+    ],
+    "livestockInformation": {
+     "types": ["Cattle"] 
+    },
+     "createdAt": "2026-10-06T10:23:07.538Z",
+     "createdBy": {
+        "identifier": "cph-backend-service",
+        "name": "CPH Backend Service"
+     },
+     "modifiedAt": "2026-10-06T10:23:07.538Z",
+     "modifiedBy": {
+        "identifier": "cph-backend-service",
+        "name": "CPH Backend Service"
+     }
+    }
+}
