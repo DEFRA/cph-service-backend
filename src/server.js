@@ -56,23 +56,13 @@ export async function createServer () {
     metrics,
     secureContext,
     { plugin: hapiPino, options: loggerOptions },
-    { plugin: hapiTracing.plugin, options: config.get('tracing') },
+    { plugin: hapiTracing.plugin, options: { tracingHeader: config.get('tracing.header') } },
     { plugin: hapiPulse, options: { logger: server.logger, timeout: tenSeconds } },
     { plugin: mongoDb, options: config.get('mongo') },
     { plugin: consumer, options: config.get('sqs') }
   ])
 
   server.route(routes)
-
-  server.logger.info('Server started successfully')
-  server.logger.info(`Access your backend on http://localhost:${config.get('port')}`)
-  server.logger.info(`Server listening on ${server.info.uri}`)
-  server.logger.info(`Pligins Registered ${Object.keys(server.registrations).join(', ')}`)
-
-  process.on('unhandledRejection', (error) => {
-    server.logger.info('Unhandled rejection', error)
-    process.exitCode = 1
-  })
 
   return server
 }
