@@ -8,6 +8,26 @@ import { insertRawFormSubmission } from '../services/rawFormSubmissions.js'
 const waitTimeSeconds = 20
 const maxNumberOfMessages = 10
 
+export function buildSqsClientConfig (awsRegion) {
+  const endpoint = process.env.AWS_ENDPOINT_URL
+  const isLocalEndpoint = Boolean(endpoint)
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID ?? (isLocalEndpoint ? 'test' : undefined)
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY ?? (isLocalEndpoint ? 'test' : undefined)
+
+  return {
+    region: awsRegion,
+    ...(isLocalEndpoint ? { endpoint, forcePathStyle: true } : {}),
+    ...(accessKeyId && secretAccessKey
+      ? {
+          credentials: {
+            accessKeyId,
+            secretAccessKey
+          }
+        }
+      : {})
+  }
+}
+
 export const consumer = {
   plugin: {
     name: 'sqs-consumer',
@@ -20,7 +40,7 @@ export const consumer = {
         return
       }
 
-      const client = new SQSClient({ region: awsRegion })
+      const client = new SQSClient(buildSqsClientConfig(awsRegion))
       let polling = true
 
       server.logger.info(`Listening to SQS queue ${queueUrl}`)

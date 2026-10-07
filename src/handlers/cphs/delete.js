@@ -1,6 +1,6 @@
 import Boom from '@hapi/boom'
 
-const CPH_COLLECTION = 'example-data'
+const CPH_COLLECTION = 'cphs'
 
 export async function deleteCphs (request, h) {
   try {

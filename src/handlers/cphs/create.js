@@ -1,8 +1,8 @@
 import Boom from '@hapi/boom'
 
-const CPH_COLLECTION = 'example-data'
+const CPH_COLLECTION = 'cphs'
 
-export async function createCPH (request, h) {
+export async function createCph (request, h) {
   try {
     const { insertedId } = await request.db.collection(CPH_COLLECTION).insertOne(request.payload)
 

@@ -1,8 +1,8 @@
 import Boom from '@hapi/boom'
 
-const CPH_COLLECTION = 'example-data'
+const CPH_COLLECTION = 'cphs'
 
-export async function findCPHs (request, h) {
+export async function findCphs (request, h) {
   try {
     let cphs = await request.db
       .collection(CPH_COLLECTION)
