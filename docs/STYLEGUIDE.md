@@ -212,6 +212,10 @@ const schema = Joi.object({
 3. Respect the repository's `.editorconfig`.
 4. Do **not** run Prettier on this project. Formatting is handled by ESLint stylistic rules, and running both will conflict.
 
+## Naming conventions
+
+For project-specific naming rules for files, functions, routes, config and database identifiers, see [NAMING-CONVENTIONS.md](NAMING-CONVENTIONS.md).
+
 ## Commands
 
 ```bash
