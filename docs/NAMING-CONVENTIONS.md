@@ -14,7 +14,7 @@ These conventions should be used alongside the project style guide in [docs/STYL
 
 ## 2. JavaScript and Node files
 
-Use lower camel case for JavaScript module files unless the file is a special-case external identifier.
+Use kebab case for JavaScript module files unless the file is a special-case external identifier.
 
 Examples:
 
@@ -28,7 +28,7 @@ Rules:
 
 - Use `kebab-case` for file names
 - Avoid `PascalCase` for regular module files; reserve it for classes only if introduced later.
-- Keep file names action- or domain-oriented, not generic names like `utils.js` or `helpers.js` unless they are clearly the single home for one narrow concern.
+- Keep file names action- or domain-oriented, not generic names like `utilsjs` or `helpers.js` unless they are clearly the single home for one narrow concern.
 
 ## 3. Variables, parameters and functions
 
