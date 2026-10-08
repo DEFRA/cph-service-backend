@@ -1,45 +1,44 @@
 {
   "_id": "iXNipKABbDsis8iOSTEf",
-  "_schemaversion": 1,
-  "_lifecycleStatus": "Draft",
-  "_source": {
-    "rawSubmissionId": "6ac4cc0b3fce9c6b24a382b5P",
-    "applicationReference": "D8R-F92-46P",
+  "schemaversion": 1,
+  "lifecycleStatus": "Draft",
+  "source": {
+    "rawSubmissionId": "6ac756ca3fce9c6b24472281",
+    "applicationReference": "WSP-ZSC-JJN",
     "formId": "6a980cc01db4dc2e19b44fdb",
-    "formVersion": "2",
-    "receivedAt": "2026-10-06T10:23:07.538Z"
+    "formVersion": 2,
+    "submittedAt": "2026-10-08T08:39:38.073Z",
+    "receivedAt": "2026-10-08T08:39:38.363Z"
     },
     "parties": [
         {
             "partyType": "Person",
             "roles": ["Keeper"],
             "name": {
-                "firstName": "John",
-                "last": "Doe"
+                "firstName": "Claire",
+                "middleName": "Jane",
+                "lastName": "Tester"
             },
-            "identifiers": [
-                {
-                    "type": "CRN",
-                    "value": "1000000001"
-                }
-            ],
             "contact": {
                 "emailAddresses": [
                     {
-                        "address": "john.doe@example.com"
+                        "address": "claire@tester.com"
                     }
                 ],
                 "phoneNumbers": [
                     {
-                        "number": "+1234567890"
+                        "number": "01424898453"
+                    },
+                    {
+                        "number": "01424898452"
                     }
                 ],
                 "postalAddresses": [
                     {
-                        "street": "The Barn",
-                        "city": "Scunthorpe",
-                        "postalCode": "DN15 0DH",
-                        "country": "UK"
+                        "addressLine1": "Flat 1 Howard House",
+                        "addressLine2": "Terrace Road",
+                        "town": "St. Leonards-on-sea",
+                        "postcode": "TN37 6UF"
                     }
                 ]
             }
@@ -49,8 +48,8 @@
         {
             "locationId": "LOC-12345",
             "geometry": {
-                "easting": "248741",
-                "northing": "412345"
+                "easting": 248741,
+                "northing": 63688
             },
             "landOwnership": {
                 "ownedByApplicant": true
@@ -58,17 +57,17 @@
         }
     ],
     "livestockInformation": {
-     "types": ["Cattle"] 
+     "types": ["Cattle"],
+     "expectedArrivalDate": "2026-10-11"
     },
-     "createdAt": "2026-10-06T10:23:07.538Z",
+     "createdAt": "2026-10-08T08:39:39.000Z",
      "createdBy": {
-        "identifier": "cph-backend-service",
+        "identifier": "cph-service-backend",
         "name": "CPH Backend Service"
      },
-     "modifiedAt": "2026-10-06T10:23:07.538Z",
+     "modifiedAt": "2026-10-08T08:39:39.000Z",
      "modifiedBy": {
-        "identifier": "cph-backend-service",
+        "identifier": "cph-service-backend",
         "name": "CPH Backend Service"
      }
-    }
 }
