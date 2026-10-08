@@ -12,7 +12,7 @@ import hapiPulse from 'hapi-pulse'
 import { routes } from './routes/index.js'
 
 const failAction = function (_request, _h, error) {
-  _request.logger.error('Validation failed', { error })
+  _request.logger.error(error, 'Validation failed')
   throw Boom.badRequest('Validation failed', error)
 }
 
@@ -53,9 +53,9 @@ export async function createServer () {
   const tenSeconds = 10 * 1000
 
   await server.register([
+    { plugin: hapiPino, options: loggerOptions },
     metrics,
     secureContext,
-    { plugin: hapiPino, options: loggerOptions },
     { plugin: hapiTracing.plugin, options: { tracingHeader: config.get('tracing.header') } },
     { plugin: hapiPulse, options: { logger: server.logger, timeout: tenSeconds } },
     { plugin: mongoDb, options: config.get('mongo') },

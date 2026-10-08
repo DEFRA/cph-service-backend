@@ -20,14 +20,13 @@ Examples:
 
 ```text
 src/services/rawFormSubmissions.js
-src/common/helpers/mongo-lock.js
-src/common/helpers/convict/validate-mongo-uri.js
+src/helpers/mongo-lock.js
+src/helpers/convict/validate-mongo-uri.js
 ```
 
 Rules:
 
-- Use `lowerCamelCase` for file names that represent a module or utility.
-- Use `kebab-case` only for externally visible, URL-like or storage-like identifiers such as collection names and route segments.
+- Use `kebab-case` for file names
 - Avoid `PascalCase` for regular module files; reserve it for classes only if introduced later.
 - Keep file names action- or domain-oriented, not generic names like `utils.js` or `helpers.js` unless they are clearly the single home for one narrow concern.
 

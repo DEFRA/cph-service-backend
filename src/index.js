@@ -13,18 +13,6 @@ async function start () {
       console.log('Unhandled rejection', error)
       process.exitCode = 1
     })
-
-    process.on('SIGINT', async () => {
-      console.log('Shutting down...')
-      await server.stop({ timeout: 10000 })
-      process.exit(0)
-    })
-
-    process.on('SIGTERM', async () => {
-      console.log('Terminating...')
-      await server.stop({ timeout: 10000 })
-      process.exit(0)
-    })
   } catch (error) {
     console.error('Startup failed', error)
     process.exit(1)
