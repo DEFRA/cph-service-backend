@@ -133,7 +133,7 @@ Examples:
 
 ```text
 test/plugins/mongodb.test.js
-test/common/helpers/convict/validate-mongo-uri.test.js
+test/helpers/convict/validate-mongo-uri.test.js
 test/handlers/rawFormSubmissions.test.js
 ```
 
