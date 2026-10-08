@@ -15,7 +15,7 @@ export async function findCphs (request, h) {
 
     return { cphs }
   } catch (err) {
-    request.logger.error('Failed to fetch CPHs', err)
+    request.logger.error(err, 'Failed to fetch CPHs')
     throw Boom.internal('Failed to fetch CPHs', err)
   }
 }
