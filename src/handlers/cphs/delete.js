@@ -10,7 +10,7 @@ export async function deleteCphs (request, h) {
 
     return h.response().code(204)
   } catch (err) {
-    request.logger.error('Failed to delete CPHs', err)
+    request.logger.error(err, 'Failed to delete CPHs')
     throw Boom.internal('Failed to delete CPHs', err)
   }
 }
