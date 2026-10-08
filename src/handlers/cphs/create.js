@@ -13,7 +13,7 @@ export async function createCph (request, h) {
       .code(201)
       .header('Location', `/api/cphs/${insertedId}`)
   } catch (err) {
-    request.logger.error('Error inserting CPH', err)
+    request.logger.error(err, 'Error inserting CPH')
     throw Boom.internal('Error inserting CPH', err)
   }
 }
