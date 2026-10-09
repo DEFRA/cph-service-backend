@@ -1,0 +1,16 @@
+import Boom from '@hapi/boom'
+
+const CPH_COLLECTION = 'cphs'
+
+export async function deleteCphs (request, h) {
+  try {
+    const result = await request.db.collection(CPH_COLLECTION).deleteMany({})
+
+    request.logger.info(`Deleted ${result.deletedCount} CPHs`)
+
+    return h.response().code(204)
+  } catch (err) {
+    request.logger.error(err, 'Failed to delete CPHs')
+    throw Boom.internal('Failed to delete CPHs', err)
+  }
+}

@@ -1,16 +1,20 @@
 import Hapi from '@hapi/hapi'
-
+import Boom from '@hapi/boom'
 import { secureContext } from '@defra/hapi-secure-context'
-
 import { config } from '#/config.js'
-import { router } from '#/plugins/router.js'
-import { requestLogger } from '#/plugins/request-logger.js'
 import { mongoDb } from '#/plugins/mongodb.js'
-import { failAction } from '#/common/helpers/fail-action.js'
-import { pulse } from '#/plugins/pulse.js'
-import { requestTracing } from '#/plugins/request-tracing.js'
 import { metrics } from '@defra/cdp-metrics'
 import { consumer } from './plugins/sqs-consumer.js'
+import hapiPino from 'hapi-pino'
+import { loggerOptions } from './plugins/options/hapi-pino-options.js'
+import { tracing as hapiTracing } from '@defra/hapi-tracing'
+import hapiPulse from 'hapi-pulse'
+import { routes } from './routes/index.js'
+
+const failAction = function (_request, _h, error) {
+  _request.logger.error(error, 'Validation failed')
+  throw Boom.badRequest('Validation failed', error)
+}
 
 export async function createServer () {
   const server = Hapi.server({
@@ -45,23 +49,20 @@ export async function createServer () {
   // secureContext  - loads CA certificates from environment config
   // pulse          - provides shutdown handlers
   // mongoDb        - sets up mongo connection pool and attaches to `server` and `request` objects
-  // router         - routes used in the app
+
+  const tenSeconds = 10 * 1000
+
   await server.register([
-    requestLogger,
-    requestTracing,
+    { plugin: hapiPino, options: loggerOptions },
     metrics,
     secureContext,
-    pulse,
-    {
-      plugin: mongoDb,
-      options: config.get('mongo')
-    },
-    {
-      plugin: consumer,
-      options: config.get('sqs')
-    },
-    router
+    { plugin: hapiTracing.plugin, options: { tracingHeader: config.get('tracing.header') } },
+    { plugin: hapiPulse, options: { logger: server.logger, timeout: tenSeconds } },
+    { plugin: mongoDb, options: config.get('mongo') },
+    { plugin: consumer, options: config.get('sqs') }
   ])
+
+  server.route(routes)
 
   return server
 }
