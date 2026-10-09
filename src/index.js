@@ -1,13 +1,22 @@
-import process from 'node:process'
+import { createServer } from '#/server.js'
 
-import { createLogger } from '#/common/helpers/logging/logger.js'
-import { startServer } from '#/common/helpers/start-server.js'
+async function start () {
+  try {
+    const server = await createServer()
+    await server.start()
 
-await startServer()
+    server.logger.info(`Plugins Registered ${Object.keys(server.registrations).join(', ')}`)
+    server.logger.info(`Server listening on ${server.info.uri}`)
+    server.logger.info('Server started successfully')
 
-process.on('unhandledRejection', (error) => {
-  const logger = createLogger()
-  logger.info('Unhandled rejection')
-  logger.error(error)
-  process.exitCode = 1
-})
+    process.on('unhandledRejection', (error) => {
+      console.log('Unhandled rejection', error)
+      process.exitCode = 1
+    })
+  } catch (error) {
+    console.error('Startup failed', error)
+    process.exit(1)
+  }
+}
+
+await start()

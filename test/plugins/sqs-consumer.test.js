@@ -1,5 +1,8 @@
 import { DeleteMessageCommand } from '@aws-sdk/client-sqs'
-import { processMessage } from './sqs-consumer.js'
+import {
+  processMessage,
+  buildSqsClientConfig
+} from '../../src/plugins/sqs-consumer.js'
 import { describe, expect, test, vi } from 'vitest'
 
 const queueUrl = 'http://localhost:4566/000000000000/test-queue'
@@ -38,6 +41,39 @@ function createDb (updateOne = vi.fn().mockResolvedValue({ upsertedCount: 1 })) 
     collection: vi.fn().mockReturnValue({ updateOne })
   }
 }
+
+describe('#buildSqsClientConfig', () => {
+  test('uses local AWS endpoint and credentials when configured', () => {
+    const originalEndpoint = process.env.AWS_ENDPOINT_URL
+    const originalAccessKeyId = process.env.AWS_ACCESS_KEY_ID
+    const originalSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
+
+    process.env.AWS_ENDPOINT_URL = 'http://localhost:4566'
+    process.env.AWS_ACCESS_KEY_ID = 'test'
+    process.env.AWS_SECRET_ACCESS_KEY = 'test'
+
+    try {
+      expect(buildSqsClientConfig('eu-west-2')).toMatchObject({
+        region: 'eu-west-2',
+        endpoint: 'http://localhost:4566',
+        forcePathStyle: true,
+        credentials: {
+          accessKeyId: 'test',
+          secretAccessKey: 'test'
+        }
+      })
+    } finally {
+      if (originalEndpoint === undefined) delete process.env.AWS_ENDPOINT_URL
+      else process.env.AWS_ENDPOINT_URL = originalEndpoint
+
+      if (originalAccessKeyId === undefined) delete process.env.AWS_ACCESS_KEY_ID
+      else process.env.AWS_ACCESS_KEY_ID = originalAccessKeyId
+
+      if (originalSecretAccessKey === undefined) delete process.env.AWS_SECRET_ACCESS_KEY
+      else process.env.AWS_SECRET_ACCESS_KEY = originalSecretAccessKey
+    }
+  })
+})
 
 describe('#processMessage', () => {
   test('Deletes the SQS message after successful storage', async () => {

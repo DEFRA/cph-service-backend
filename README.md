@@ -147,8 +147,6 @@ ncu --interactive --format group
 | Endpoint             | Description                    |
 | :------------------- | :----------------------------- |
 | `GET: /health`       | Health                         |
-| `GET: /example    `  | Example API (remove as needed) |
-| `GET: /example/<id>` | Example API (remove as needed) |
 
 ## Development helpers
 
