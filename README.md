@@ -2,14 +2,22 @@
 
 Core delivery platform Node.js Backend Template.
 
+- [Quick Start Guide](#quick-start-guide)
+  - [Local Configuration](#local-configuration)
+  - [Install Dependancies](#install-dependancies)
+  - [cph-form-test-frontend Project](#cph-form-test-frontend-project)
+  - [Running the project](#running-the-project)
+  - [Simulating the Form](#simulating-the-form)
 - [Process](#process)
   - [Pull Requests](#pull-requests)
 - [Standards](#standards)
 - [Reference](#reference)
+- [Testing](#testing)
 - [Requirements](#requirements)
   - [Node.js](#nodejs)
 - [Local development](#local-development)
   - [Setup](#setup)
+  - [Git hooks](#git-hooks)
   - [Development](#development)
   - [Testing](#testing)
   - [Production](#production)
@@ -20,13 +28,175 @@ Core delivery platform Node.js Backend Template.
   - [MongoDB Locks](#mongodb-locks)
   - [Proxy](#proxy)
 - [Docker](#docker)
-  - [Development image](#development-image)
-  - [Production image](#production-image)
   - [Docker Compose](#docker-compose)
   - [Dependabot](#dependabot)
   - [SonarCloud](#sonarcloud)
 - [Licence](#licence)
   - [About the licence](#about-the-licence)
+
+## Quick Start Guide
+
+### Local Configuration
+
+Configure the following files using the parameters prodvided.
+
+#### .env
+
+```text
+MONGO_URI=mongodb://localhost:27017/
+SQS_QUEUE_URL=http://localhost:4566/000000000000/cph-form
+AWS_ENDPOINT_URL=http://localhost:4566
+AWS_REGION=eu-west-2
+AWS_DEFAULT_REGION=eu-west-2
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+```
+
+#### ./compose/aws.env
+
+```environment
+AWS_REGION=eu-west-2
+AWS_DEFAULT_REGION=eu-west-2
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+AWS_ENDPOINT_URL=http://localhost:4566
+```
+
+#### ./.vscode/launch.json
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Docker: Attach to cph-service-backend",
+            "address": "localhost",
+            "port": 9229,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/home/node",
+            "restart": true,
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
+        }
+    ]
+}
+```
+
+### Install Dependancies
+
+Run:
+
+```bash
+npm install
+```
+
+Followed by:
+
+```bash
+npx playwright install chromium
+```
+
+The above installs the playwright dependancy for being able to auto fill the CPH form.
+
+### cph-form-test-frontend Project
+
+The [cph-form-test-frontend](https://github.com/DEFRA/cph-form-test-frontend) project should be available in the same directory as this project e.g.
+
+```text
+./projects/cph-service-backend
+./projects/cph-form-test-frontend
+```
+
+This is achieved by navigating to your projects folder and running:
+
+```text
+git clone https://github.com/DEFRA/cph-form-test-frontend.git
+```
+
+As long as the code is available in the correct location, it is not necessary to do anything else. The cph-form-test-frontend is built and run from within this projects doocker compose configuration.
+
+### Running the project
+
+The project and all necessary dependancies can be run through docker compose using:
+
+```bash
+npm run services:up
+```
+
+Alternativly the project can be run in debug mode using:
+
+```bash
+npm run services:up:debug
+```
+
+This command attached the debugger to enable code inspection.
+
+The project can be stopped using:
+
+```bash
+npm run services:down
+```
+
+### Simulating the Form
+
+There are two options for simulating the form data.
+
+#### Publishing a SQS Message
+
+Run:
+
+```bash
+npm run publish:sqs-test-message
+```
+
+This generates a basic SQS message that is published to the SQS queue for processing by cph-service-backend. The script that controls this can be found in ./scripts/publish-sqs-test-message.js.
+
+#### Auto Fill the CPH Form
+
+Run:
+
+```bash
+npm run fill-form:basic
+```
+
+This runs the docker hosted cph-form-test-frontend on [http://localhost:3000/](http://localhost:3000/) to simulate the live CPH form data being publised to the SQS queue.
+
+#### Creating Additional Versions of the Automated Form
+
+The form is complex and has many different user flows. Therefore it may be necessary to create different versions of this script.
+
+With the project running through:
+
+```bash
+npm run service:up
+```
+
+Run:
+
+```bash
+npx playwright codegen http://localhost:3000/
+```
+
+Fill in the form in the browser window that opens, then copy the generated code into a test file with the ./scripts folder e.g.
+
+```text
+./scripts/fill-cph-form-another-flow.spec.js
+```
+
+The additional file can be run using:
+
+```json
+npx playwright test scripts/fill-cph-form-basic-another-flow.spec.js --headed
+```
+
+or by adding a new script to the package.json file e.g.
+
+```bash
+"fill-form:another-flow": "npx playwright test scripts/fill-cph-form-basic-another-flow.spec.js --headed"
+```
 
 ## Process
 
@@ -38,7 +208,7 @@ The pull request process is documented here: [Defra Software Development Standar
 
 Branch names will use the following format.
 
-```
+```text
 {type}/{ticket-id}-{description}
 ```
 
@@ -65,6 +235,28 @@ Branch names will use the following format.
 ## Reference
 
 - [Core Delivery Platform](https://portal.cdp-int.defra.cloud/documentation/README.md)
+
+## Testing
+
+Test files are named using the .test.js file extension. Tests should be located in the ./test folder using a structure that reflects the code structure e.g.
+
+Code:
+
+```text
+./src/handlers/cphs/create.js
+```
+
+Tests:
+
+```text
+./test/handlers/cphs/create.test.js
+````
+
+To test the application run:
+
+```bash
+npm run test
+```
 
 ## Requirements
 
@@ -104,14 +296,6 @@ To run the application in `development` mode run:
 
 ```bash
 npm run dev
-```
-
-### Testing
-
-To test the application run:
-
-```bash
-npm run test
 ```
 
 ### Production
