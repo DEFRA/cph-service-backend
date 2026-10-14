@@ -38,7 +38,7 @@ Core delivery platform Node.js Backend Template.
 
 ### Local Configuration
 
-Configure the following files using the parameters prodvided.
+Configure the following files using the parameters provided.
 
 #### .env
 
@@ -85,7 +85,7 @@ AWS_ENDPOINT_URL=http://localhost:4566
 }
 ```
 
-### Install Dependancies
+### Install Dependencies
 
 Run:
 
@@ -99,7 +99,7 @@ Followed by:
 npx playwright install chromium
 ```
 
-The above installs the playwright dependancy for being able to auto fill the CPH form.
+The above installs the playwright dependency for being able to auto fill the CPH form.
 
 ### cph-form-test-frontend Project
 
@@ -116,17 +116,17 @@ This is achieved by navigating to your projects folder and running:
 git clone https://github.com/DEFRA/cph-form-test-frontend.git
 ```
 
-As long as the code is available in the correct location, it is not necessary to do anything else. The cph-form-test-frontend is built and run from within this projects doocker compose configuration.
+As long as the code is available in the correct location, it is not necessary to do anything else. The cph-form-test-frontend is built and run from within this projects docker compose configuration.
 
 ### Running the project
 
-The project and all necessary dependancies can be run through docker compose using:
+The project and all necessary dependencies can be run through docker compose using:
 
 ```bash
 npm run services:up
 ```
 
-Alternativly the project can be run in debug mode using:
+Alternatively the project can be run in debug mode using:
 
 ```bash
 npm run services:up:debug
@@ -162,7 +162,7 @@ Run:
 npm run fill-form:basic
 ```
 
-This runs the docker hosted cph-form-test-frontend on [http://localhost:3000/](http://localhost:3000/) to simulate the live CPH form data being publised to the SQS queue.
+This runs the docker hosted cph-form-test-frontend on [http://localhost:3000/](http://localhost:3000/) to simulate the live CPH form data being published to the SQS queue.
 
 #### Creating Additional Versions of the Automated Form
 
