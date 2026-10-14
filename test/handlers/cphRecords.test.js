@@ -74,6 +74,26 @@ describe('mapDraftCphRecord', () => {
     expect(draft.livestockInformation.expectedArrivalDate).toBe('2026-10-11')
   })
 
+  test.each([undefined, null, '', '   ', 'not-a-date'])(
+    'throws an error for invalid submission timestamp: %p',
+    (invalidTimestamp) => {
+      const rawSubmissionWithInvalidTimestamp = {
+        ...rawSubmission,
+        body: JSON.stringify({
+          ...JSON.parse(rawSubmission.body),
+          meta: {
+            ...JSON.parse(rawSubmission.body).meta,
+            timestamp: invalidTimestamp
+          }
+        })
+      }
+
+      expect(() => mapDraftCphRecord(rawSubmissionWithInvalidTimestamp)).toThrow(
+        'Missing or invalid submission timestamp'
+      )
+    }
+  )
+
   test('accepts a submission without livestock answers', () => {
     const rawSubmissionWithoutLivestock = {
       ...rawSubmission,

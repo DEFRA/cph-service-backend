@@ -1,6 +1,14 @@
 export function mapDraftCphRecord (rawSubmission) {
   const submission = JSON.parse(rawSubmission.body)
   const meta = submission.meta
+  const submittedAt = new Date(meta.timestamp)
+  if (
+    typeof meta.timestamp !== 'string' || meta.timestamp.trim() === '' ||
+    Number.isNaN(submittedAt.getTime())
+  ) {
+    throw new Error('Missing or invalid submission timestamp')
+  }
+
   const answers = submission.data?.main ?? {}
 
   const livestockInformation = {}
@@ -20,7 +28,7 @@ export function mapDraftCphRecord (rawSubmission) {
       applicationReference: meta.referenceNumber,
       formId: meta.formId,
       formVersion: meta.versionMetadata?.versionNumber,
-      submittedAt: new Date(meta.timestamp),
+      submittedAt,
       receivedAt: rawSubmission.receivedAt
     },
     livestockInformation
