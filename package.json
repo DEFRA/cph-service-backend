@@ -24,7 +24,9 @@
     "test:watch": "TZ=UTC vitest",
     "services:up": "docker compose up --build",
     "services:up:debug": "NPM_SCRIPT=docker:dev:debug docker compose up --build",
-    "services:down": "docker compose down"
+    "services:down": "docker compose down",
+    "publish:sqs-test-message": "node ./scripts/publish-sqs-test-message.js",
+    "fill-form:basic": "npx playwright test scripts/fill-cph-form-basic-flow.spec.js --headed"
   },
   "imports": {
     "#/*": "./src/*"
@@ -52,6 +54,7 @@
     "pino": "10.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "9.39.2",
     "husky": "9.1.7",

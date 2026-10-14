@@ -15,6 +15,14 @@ services:
       AWS_SECRET_ACCESS_KEY: test
     networks:
       - cdp-tenant
+  
+  redis:
+    image: redis:7.2.3-alpine3.18
+    ports:
+      - '6379:6379'
+    restart: always
+    networks:
+      - cdp-tenant
 
   mongodb:
     image: mongo:7.0.28
@@ -38,7 +46,7 @@ services:
       target: development
     ports:
       - 3001:3001
-      - 9230:9230
+      - 9229:9229
     links:
       - 'floci:floci'
       - 'mongodb:mongodb'
@@ -64,6 +72,33 @@ services:
       - ./src:/home/node/src
       - ./package.json:/home/node/package.json
       - ./.env:/home/node/.env
+
+  cph-form-test-frontend:
+    build:
+      context: ../cph-form-test-frontend
+      target: development
+    ports:
+      - '3000:3000'
+    links:
+      - 'redis:redis'
+      - 'floci:floci'
+    depends_on:
+      redis:
+        condition: service_started
+      floci:
+        condition: service_healthy
+    env_file:
+      - 'compose/aws.env'
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      REDIS_HOST: redis
+      LOCALSTACK_ENDPOINT: http://floci:4566
+      AWS_ENDPOINT: http://floci:4566
+      SQS_FORM_SUBMISSION_QUEUE_URL: http://floci:4566/000000000000/cph-form
+      USE_SINGLE_INSTANCE_CACHE: true
+    networks:
+      - cdp-tenant
 
 volumes:
   mongodb-data:
