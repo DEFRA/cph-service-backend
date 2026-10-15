@@ -132,7 +132,7 @@ Alternatively the project can be run in debug mode using:
 npm run services:up:debug
 ```
 
-This command attached the debugger to enable code inspection.
+This starts the backend paused for debugging. In VS Code, run the `Docker: Attach to cph-service-backend` launch configuration above, then resume execution to complete startup.
 
 The project can be stopped using:
 
