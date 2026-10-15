@@ -1,7 +1,7 @@
 import {
   SQSClient,
   ReceiveMessageCommand,
-  DeleteMessageCommand,
+  DeleteMessageCommand
 } from '@aws-sdk/client-sqs'
 
 import { insertRawFormSubmission } from '../services/rawFormSubmissions.js'
