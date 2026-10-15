@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 test('test', async ({ page }) => {
   await page.goto('http://localhost:3000/')
@@ -128,5 +128,9 @@ test('test', async ({ page }) => {
     .getByRole('textbox', { name: 'Memorable town or city' })
     .fill('Town')
   await page.getByRole('button', { name: 'Continue' }).click()
+  const submitResponse = page.waitForResponse(
+    (response) => response.request().method() === 'POST'
+  )
   await page.getByRole('button', { name: 'Accept and submit' }).click()
+  expect((await submitResponse).status()).toBe(303)
 })
