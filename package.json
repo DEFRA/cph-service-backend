@@ -11,16 +11,22 @@
     "dev": "AWS_EMF_ENVIRONMENT=Local NODE_ENV=development npm run server:watch",
     "dev:debug": "AWS_EMF_ENVIRONMENT=Local NODE_ENV=development npm run server:debug",
     "docker:dev": "npm run dev",
+    "docker:dev:debug": "npm run dev:debug",
     "git:pre-commit-hook": "npm run security-audit && npm run lint && npm test",
     "lint": "eslint --cache --cache-strategy content \"**/*.{cjs,js}\"",
     "lint:fix": "npm run lint -- --fix",
     "security-audit": "npm audit --audit-level=critical",
-    "server:debug": "node --watch --inspect-brk=0.0.0.0 --env-file-if-exists=.env ./src",
-    "server:watch": "node --watch --inspect=0.0.0.0 --env-file-if-exists=.env ./src",
+    "server:debug": "node --watch --inspect-brk=0.0.0.0:9229 --env-file-if-exists=.env ./src",
+    "server:watch": "node --watch --inspect=0.0.0.0:9229 --env-file-if-exists=.env ./src",
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
     "start": "NODE_ENV=production node . --env-file-if-exists=.env",
     "test": "TZ=UTC vitest run --coverage",
-    "test:watch": "TZ=UTC vitest"
+    "test:watch": "TZ=UTC vitest",
+    "services:up": "docker compose up --build",
+    "services:up:debug": "NPM_SCRIPT=docker:dev:debug docker compose up --build",
+    "services:down": "docker compose down",
+    "publish:sqs-test-message": "node ./scripts/publish-sqs-test-message.js",
+    "fill-form:basic": "npx playwright test scripts/fill-cph-form-basic-flow.spec.js --headed"
   },
   "imports": {
     "#/*": "./src/*"
@@ -48,6 +54,7 @@
     "pino": "10.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "9.39.2",
     "husky": "9.1.7",

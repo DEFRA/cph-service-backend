@@ -15,7 +15,9 @@ COPY --chown=node:node package*.json ./
 RUN npm install
 COPY --chown=node:node ./src ./src
 
-CMD [ "npm", "run", "docker:dev" ]
+# Override at runtime with NPM_SCRIPT=docker:dev:debug to start paused for a debugger.
+ENV NPM_SCRIPT=docker:dev
+CMD [ "sh", "-c", "exec npm run $NPM_SCRIPT" ]
 
 FROM defradigital/node:${PARENT_VERSION} AS production
 ARG PARENT_VERSION
