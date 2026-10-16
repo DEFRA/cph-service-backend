@@ -1,16 +1,26 @@
 services:
-  # floci is a replacement for localstack. It emulates AWS resources (sqs, sns, s3 etc) for local development
-  # See: https://floci.io for more details
   floci:
     image: floci/floci:latest-aws
     ports:
       - '4566:4566'
-    env_file:
-      - 'compose/aws.env'
-    environment:
-      FLOCI_DEFAULT_REGION: eu-west-2
     volumes:
       - ./compose/floci/start.d:/etc/floci/init/start.d:ro
+      - floci-data:/app/data
+    environment:
+      FLOCI_HOSTNAME: floci
+      FLOCI_REGION: eu-west-2
+      AWS_REGION: eu-west-2
+      AWS_DEFAULT_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    networks:
+      - cdp-tenant
+  
+  redis:
+    image: redis:7.2.3-alpine3.18
+    ports:
+      - '127.0.0.1:6379:6379'
+    restart: always
     networks:
       - cdp-tenant
 
@@ -30,38 +40,69 @@ services:
       retries: 3
       start_period: 30s
 
-  ################################################################################
+  cph-service-backend:
+    build:
+      context: .
+      target: development
+    ports:
+      - 3001:3001
+      - '127.0.0.1:9229:9229'
+    links:
+      - 'floci:floci'
+      - 'mongodb:mongodb'
+    depends_on:
+      floci:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    environment:
+      PORT: 3001
+      NPM_SCRIPT: ${NPM_SCRIPT:-docker:dev}
+      NODE_ENV: development
+      MONGO_URI: mongodb://mongodb:27017/
+      SQS_QUEUE_URL: http://floci:4566/000000000000/cph-form
+      AWS_REGION: eu-west-2
+      AWS_DEFAULT_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://floci:4566
+    networks:
+      - cdp-tenant
+    volumes:
+      - ./src:/home/node/src
+      - ./package.json:/home/node/package.json
+      - ./.env:/home/node/.env
 
-  # cph-service-backend:
-  #   build:
-  #     context: .
-  #     target: development
-  #   ports:
-  #     - '3001:3001'
-  #   links:
-  #     - 'floci:floci'
-  #     - 'mongodb:mongodb'
-  #   depends_on:
-  #     floci:
-  #       condition: service_healthy
-  #     mongodb:
-  #       condition: service_started
-  #   env_file:
-  #     - 'compose/aws.env'
-  #   environment:
-  #     PORT: 3001
-  #     NODE_ENV: development
-  #     MONGO_URI: mongodb://mongodb:27017/
-  #   networks:
-  #     - cdp-tenant
-  #   volumes:
-  #     - ./src:/home/node/src
-  #     - ./package.json:/home/node/package.json
-
-################################################################################
+  cph-form-test-frontend:
+    build:
+      context: ../cph-form-test-frontend
+      target: development
+    ports:
+      - '3000:3000'
+    links:
+      - 'redis:redis'
+      - 'floci:floci'
+    depends_on:
+      redis:
+        condition: service_started
+      floci:
+        condition: service_healthy
+    env_file:
+      - 'compose/aws.env'
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      REDIS_HOST: redis
+      LOCALSTACK_ENDPOINT: http://floci:4566
+      AWS_ENDPOINT: http://floci:4566
+      SQS_FORM_SUBMISSION_QUEUE_URL: http://floci:4566/000000000000/cph-form
+      USE_SINGLE_INSTANCE_CACHE: true
+    networks:
+      - cdp-tenant
 
 volumes:
   mongodb-data:
+  floci-data:
 
 networks:
   cdp-tenant:
