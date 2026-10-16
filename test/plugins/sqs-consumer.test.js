@@ -11,7 +11,8 @@ function createBody () {
   return JSON.stringify({
     meta: {
       referenceNumber: 'TEST-REF-001',
-      formId: 'test-form-id'
+      formId: 'test-form-id',
+      timestamp: '2026-10-08T08:39:38.073Z'
     },
     data: {
       main: {
@@ -36,9 +37,33 @@ function createLogger () {
   }
 }
 
-function createDb (updateOne = vi.fn().mockResolvedValue({ upsertedCount: 1 })) {
+function createDb (
+  updateOne = vi.fn().mockResolvedValue({ upsertedCount: 1 })
+) {
+  const rawSubmission = {
+    _id: 'test-raw-submission-id',
+    receivedAt: new Date('2026-10-08T08:39:38.363Z'),
+    body: createBody()
+  }
+
+  const rawCollection = {
+    updateOne,
+    findOne: vi.fn().mockResolvedValue(rawSubmission)
+  }
+
+  const draftCollection = {
+    updateOne: vi.fn().mockResolvedValue({ upsertedCount: 1 }),
+    findOne: vi.fn().mockResolvedValue({ upsertedCount: 1 })
+  }
+
   return {
-    collection: vi.fn().mockReturnValue({ updateOne })
+    rawCollection,
+    draftCollection,
+    collection: vi.fn((name) => {
+      if (name === 'raw-form-submissions') return rawCollection
+      if (name === 'cph-records') return draftCollection
+      throw new Error(`Unknown collection name: ${name}`)
+    })
   }
 }
 
@@ -139,6 +164,76 @@ describe('#processMessage', () => {
     expect(logger.error).toHaveBeenCalledWith(
       deletionError,
       'Failed to delete SQS message test-message-id'
+    )
+  })
+
+  test('stores the Draft using the retained raw submission', async () => {
+    const client = { send: vi.fn().mockResolvedValue({}) }
+    const db = createDb()
+    const logger = createLogger()
+
+    const retained = JSON.parse(createBody())
+    retained.data.main.vumpmr = ['Cattle']
+
+    db.rawCollection.findOne.mockResolvedValue({
+      _id: 'test-raw-submission-id',
+      receivedAt: new Date('2026-10-08T08:39:38:363Z'),
+      body: JSON.stringify(retained)
+    })
+
+    const incoming = JSON.parse(createBody())
+    incoming.data.main.vumpmr = ['Sheep']
+
+    await processMessage(
+      client,
+      queueUrl,
+      db,
+      logger,
+      createMessage(JSON.stringify(incoming))
+    )
+
+    expect(db.rawCollection.findOne).toHaveBeenCalledWith({
+      referenceNumber: 'TEST-REF-001'
+    })
+
+    expect(db.draftCollection.updateOne).toHaveBeenCalledWith(
+      { 'source.rawSubmissionId': 'test-raw-submission-id' },
+      {
+        $setOnInsert: expect.objectContaining({
+          lifecycleStatus: 'Draft',
+          livestockInformation: {
+            types: ['Cattle']
+          }
+        })
+      },
+      { upsert: true }
+    )
+
+    expect(client.send).toHaveBeenCalledTimes(1)
+  })
+
+  test('does not delete the message when Draft storage fails', async () => {
+    const storageError = new Error('Draft storage unavailable')
+    const client = { send: vi.fn().mockResolvedValue({}) }
+    const db = createDb()
+    const logger = createLogger()
+
+    db.draftCollection.updateOne.mockRejectedValue(storageError)
+
+    await processMessage(
+      client,
+      queueUrl,
+      db,
+      logger,
+      createMessage()
+    )
+
+    expect(db.rawCollection.updateOne).toHaveBeenCalledTimes(1)
+    expect(db.draftCollection.updateOne).toHaveBeenCalledTimes(1)
+    expect(client.send).not.toHaveBeenCalled()
+    expect(logger.error).toHaveBeenCalledWith(
+      storageError,
+      'Failed to store SQS message test-message-id; message not deleted'
     )
   })
 })
