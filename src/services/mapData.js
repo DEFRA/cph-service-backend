@@ -25,7 +25,6 @@ export async function loadMapData(db, logger, { geoJsonPath }) {
   // rather than failing the whole build at the end of a long load.
   await collection.createIndex({ geometry: '2dsphere' })
   await collection.createIndex({ cphNumber: 1 })
-  await collection.createIndex({ 'bboxOsgb36.minE': 1, 'bboxOsgb36.maxE': 1 })
 
   const features = createReadStream(geoJsonPath)
     .pipe(parser.asStream())
@@ -113,7 +112,6 @@ function toDocument(feature) {
     pseudoCode: PSEUDOCODE === 'YES',
     geometry: convertGeometry(repairGeometry(feature.geometry)),
     geometryOsgb36: feature.geometry,
-    bboxOsgb36: boundingBox(feature.geometry),
     // Source X_COORD/Y_COORD; the dataset does not say whether these are a true
     // centroid or a label point, so the name claims neither.
     labelPointOsgb36: { easting: X_COORD, northing: Y_COORD }
@@ -193,7 +191,7 @@ function turn([ox, oy], [ax, ay], [bx, by]) {
  * because every ring after the first must sit inside the first. Moves the ring
  * that contains all the others to the front.
  */
-export function repairRingOrder(geometry) {
+function repairRingOrder(geometry) {
   return {
     type: geometry.type,
     coordinates:
@@ -217,30 +215,6 @@ function outerRingFirst(rings) {
   }
 
   return [rings[outer], ...rings.filter((_, i) => i !== outer)]
-}
-
-function boundingBox(geometry) {
-  let minE = Infinity
-  let maxE = -Infinity
-  let minN = Infinity
-  let maxN = -Infinity
-
-  const visit = (coordinates) => {
-    if (typeof coordinates[0] === 'number') {
-      const [e, n] = coordinates
-      minE = Math.min(minE, e)
-      maxE = Math.max(maxE, e)
-      minN = Math.min(minN, n)
-      maxN = Math.max(maxN, n)
-      return
-    }
-
-    coordinates.forEach(visit)
-  }
-
-  visit(geometry.coordinates)
-
-  return { minE, maxE, minN, maxN }
 }
 
 function ringContainsPoint(ring, [x, y]) {
