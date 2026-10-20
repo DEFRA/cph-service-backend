@@ -1,5 +1,10 @@
+import { validateRawSubmission } from './cph/validateRawSubmission.js'
+
 export function mapDraftCphRecord (rawSubmission) {
   const submission = JSON.parse(rawSubmission.body)
+
+  validateRawSubmission(submission)
+
   const meta = submission.meta
   const submittedAt = new Date(meta.timestamp)
   if (
