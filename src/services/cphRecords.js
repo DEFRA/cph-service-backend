@@ -1,5 +1,18 @@
-import { validateRawSubmissionBody, validateRawSubmissionMeta } from './cph/validateRawSubmission.js'
-import { createValidationFailure } from '../helpers/validation-failure.js'
+import { validateRawSubmission } from './cph/validateRawSubmission.js'
+
+export function mapDraftCphRecord (rawSubmission) {
+  const submission = JSON.parse(rawSubmission.body)
+
+  validateRawSubmission(submission)
+
+  const meta = submission.meta
+  const submittedAt = new Date(meta.timestamp)
+  if (
+    typeof meta.timestamp !== 'string' || meta.timestamp.trim() === '' ||
+    Number.isNaN(submittedAt.getTime())
+  ) {
+    throw new Error('Missing or invalid submission timestamp')
+  }
 
 async function createDraftCphRecord (rawSubmission, submissionBody, validationErrors, server) {
   const now = new Date()
