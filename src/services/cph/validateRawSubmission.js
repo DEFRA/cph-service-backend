@@ -34,8 +34,8 @@ const rawFormSchema = Joi.object({
   data: Joi.object({
     main: Joi.object({
       yDwSNa: dateParts
-    }).required()
-  }).required(),
+    }).required().unknown(true)
+  }).required().unknown(true),
   meta: Joi.object({
     timestamp: Joi.string().required()
   }).required().unknown(true)
