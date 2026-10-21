@@ -38,7 +38,7 @@ const rawFormSchema = Joi.object({
     }).required().unknown(true)
   }).required().unknown(true),
   meta: Joi.object({
-    timestamp: Joi.string().required(),
+    timestamp: Joi.string().isoDate().required(),
     referenceNumber: Joi.string().required()
   }).required().unknown(true)
 }).unknown(true)
@@ -48,8 +48,7 @@ export async function validateRawSubmission (submission, server) {
     const validationResult = Joi.attempt(submission, rawFormSchema, { abortEarly: false })
     return validationResult
   } catch (error) {
-    await Promise.all(error.details.map(details => logValidationFailure(server, submission.meta.referenceNumber, details.message, details.context)))
-
+    await Promise.all(error.details.map(details => logValidationFailure(server, submission?.meta?.referenceNumber, details.message, details.context)))
     throw new Error(`Invalid submission: ${error.message}`)
   }
 }
