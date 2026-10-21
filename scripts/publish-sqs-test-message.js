@@ -1792,46 +1792,6 @@ const formMetaData = {
   ],
 }
 
-// const formMetaData = {
-//   sessionId: '4132b3f8-10bf-4bf3-9e16-e7a7a37ec7d9',
-//   retrievalKey: 'example-email-submission-recipient@defra.com',
-//   referenceNumber: 'FN4-AHL-2AA',
-//   meta: {
-//     // Backend upserts on referenceNumber with $setOnInsert, so a fixed value means later sends are ignored
-//     referenceNumber: `FN4-${Date.now().toString(36).toUpperCase()}`,
-//     timestamp: new Date().toString()
-//   },
-//   data: {
-//     main: {
-//       yDwSNa: {
-//         day: today.getDate(),
-//         month: today.getMonth() + 1,
-//         year: today.getFullYear()
-//       }
-//     }
-//   }
-// }
-
-// const formMetaData = {
-//   sessionId: '4132b3f8-10bf-4bf3-9e16-e7a7a37ec7d9',
-//   retrievalKey: 'example-email-submission-recipient@defra.com',
-//   referenceNumber: 'FN4-AHL-2AA',
-//   meta: {
-//     // Backend upserts on referenceNumber with $setOnInsert, so a fixed value means later sends are ignored
-//     referenceNumber: `FN4-${Date.now().toString(36).toUpperCase()}`,
-//     timestamp: new Date().toString()
-//   },
-//   data: {
-//     main: {
-//       yDwSNa: {
-//         day: today.getDate(),
-//         month: today.getMonth() + 1,
-//         year: today.getFullYear()
-//       }
-//     }
-//   }
-// }
-
 const client = new SQSClient(
   {
     region: 'eu-west-2',
