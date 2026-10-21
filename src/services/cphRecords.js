@@ -1,28 +1,40 @@
-import { validateRawSubmission } from './cph/validateRawSubmission.js'
+import { createValidationFailure } from '../helpers/validation-failure.js'
+import { validateRawSubmissionBody, validateRawSubmissionMeta } from './cph/validateRawSubmission.js'
 
-export function mapDraftCphRecord (rawSubmission) {
-  const submission = JSON.parse(rawSubmission.body)
+export function mapDraftCphRecord (rawSubmission, submission) {
+  const meta = submission.meta ?? {}
+  const submittedAt = meta.timestamp ? new Date(meta.timestamp) : new Date()
+  const answers = submission.data?.main ?? {}
 
-  validateRawSubmission(submission)
+  const livestockInformation = {}
 
-  const meta = submission.meta
-  const submittedAt = new Date(meta.timestamp)
-  if (
-    typeof meta.timestamp !== 'string' || meta.timestamp.trim() === '' ||
-    Number.isNaN(submittedAt.getTime())
-  ) {
-    throw new Error('Missing or invalid submission timestamp')
+  if (answers.vumpmr !== undefined) {
+    livestockInformation.types = [...answers.vumpmr]
   }
+
+  if (answers.yDwSNa !== undefined) {
+    const { day, month, year } = answers.yDwSNa
+    livestockInformation.expectedArrivalDate = `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+  }
+
+  return {
+    lifecycleStatus: 'Draft',
+    source: {
+      rawSubmissionId: rawSubmission._id,
+      applicationReference: meta.referenceNumber,
+      formId: meta.formId,
+      formVersion: meta.versionMetadata?.versionNumber,
+      submittedAt,
+      receivedAt: rawSubmission.receivedAt
+    },
+    livestockInformation
+  }
+}
 
 async function createDraftCphRecord (rawSubmission, submissionBody, validationErrors, server) {
   const now = new Date()
-  const actor = {
-    identifier: 'cph-service-backend',
-    name: 'CPH Service Backend'
-  }
-
-  const parsedSubmittedAt = new Date(submissionBody?.meta?.timestamp)
-  const submittedAt = Number.isNaN(parsedSubmittedAt.getTime()) ? now : parsedSubmittedAt
+  const submittedAt = new Date(submissionBody?.meta?.timestamp ?? now)
+  const parsedSubmittedAt = Number.isNaN(submittedAt.getTime()) ? now : submittedAt
 
   const rawMetaValidationErrors = await validateRawSubmissionMeta(submissionBody, server)
   validationErrors.push(...rawMetaValidationErrors)
@@ -35,32 +47,36 @@ async function createDraftCphRecord (rawSubmission, submissionBody, validationEr
       applicationReference: submissionBody?.meta?.referenceNumber ?? 'Unknown',
       formId: submissionBody?.meta?.formId ?? 'Unknown',
       formVersion: submissionBody?.meta?.versionMetadata?.versionNumber ?? 'Unknown',
-      submittedAt,
+      submittedAt: parsedSubmittedAt,
     },
     createdAt: now,
-    createdBy: actor,
+    createdBy: {
+      identifier: 'cph-service-backend',
+      name: 'CPH Service Backend'
+    },
     modifiedAt: now,
-    modifiedBy: actor,
+    modifiedBy: {
+      identifier: 'cph-service-backend',
+      name: 'CPH Service Backend'
+    },
     validationErrors
   }
 }
 
-async function mapDraftCphRecord (draft, submissionBody, server) {
+async function enrichDraftCphRecord (draft, submissionBody, server) {
   const rawBodyValidationErrors = await validateRawSubmissionBody(submissionBody, server)
   draft.validationErrors.push(...rawBodyValidationErrors)
 
-  const answers = submissionBody.data?.main
-
-  // Create form answer keys: docs/create-cph-form-field-mapping.md
-  const {
-    vumpmr: livestockTypes,
-    yDwSNa: expectedArrivalDate
-  } = answers
-
+  const answers = submissionBody.data?.main ?? {}
   const livestockInformation = {}
 
-  livestockInformation.types = Array.isArray(livestockTypes) ? [...livestockTypes] : []
-  livestockInformation.expectedArrivalDate = expectedArrivalDate
+  if (answers.vumpmr !== undefined) {
+    livestockInformation.types = Array.isArray(answers.vumpmr) ? [...answers.vumpmr] : []
+  }
+
+  if (answers.yDwSNa !== undefined) {
+    livestockInformation.expectedArrivalDate = answers.yDwSNa
+  }
 
   return {
     ...draft,
@@ -84,7 +100,7 @@ export async function insertDraftCphRecord (server, rawSubmission) {
   draftCph = await createDraftCphRecord(rawSubmission, submissionBody, validationErrors, server)
 
   if (!failedToParseBody) {
-    draftCph = await mapDraftCphRecord(draftCph, submissionBody, server)
+    draftCph = await enrichDraftCphRecord(draftCph, submissionBody, server)
   }
 
   try {

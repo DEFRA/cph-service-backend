@@ -1,8 +1,7 @@
 import Joi from 'joi'
-import { createValidationFailure } from '../../helpers/validation-failure.js'
 
-// const MS_PER_DAY = 24 * 60 * 60 * 1000
-// const MAX_DAYS_FROM_TODAY = 7
+import { createValidationFailure } from '../../helpers/validation-failure.js'
+import { logValidationFailure } from '../../helpers/validation-failures.js'
 
 const dateParts = Joi.object({
   year: Joi.number().integer().min(2020).required(),
@@ -22,15 +21,8 @@ const dateParts = Joi.object({
   }
 
   return value
-
-  // const now = new Date()
-  // const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  // const diffDays = (date.getTime() - today) / MS_PER_DAY
-
-  // return diffDays >= 0 && diffDays <= MAX_DAYS_FROM_TODAY ? value : helpers.error('date.outOfRange')
 }).messages({
   'date.invalid': '{{#label}} must be a real date'
-  // 'date.outOfRange': `{{#label}} must be today or within the next ${MAX_DAYS_FROM_TODAY} days`
 })
 
 const rawBodySchema = Joi.object({
@@ -83,4 +75,23 @@ export async function validateRawSubmissionMeta (submission, server) {
   }
 
   return validationErrors
+}
+
+export async function validateRawSubmission (submission, server) {
+  try {
+    return Joi.attempt(submission, Joi.object({
+      meta: rawMetaSchema.extract('meta'),
+      data: rawBodySchema.extract('data')
+    }).required().unknown(true), { abortEarly: false })
+  } catch (error) {
+    const referenceNumber = submission?.meta?.referenceNumber
+
+    if (server && referenceNumber) {
+      await Promise.all((error.details ?? [{ message: error.message, context: {} }]).map(details =>
+        logValidationFailure(server, referenceNumber, details.message, details.context)
+      ))
+    }
+
+    throw error
+  }
 }
