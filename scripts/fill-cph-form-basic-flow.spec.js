@@ -10,7 +10,7 @@ test('test', async ({ page }) => {
   await page.getByRole('radio', { name: 'England' }).check()
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByRole('textbox', { name: 'Day' }).click()
-  await page.getByRole('textbox', { name: 'Day' }).fill('01')
+  await page.getByRole('textbox', { name: 'Day' }).fill('20')
   await page.getByRole('textbox', { name: 'Day' }).press('Tab')
   await page.getByRole('textbox', { name: 'Month' }).fill('10')
   await page.getByRole('textbox', { name: 'Month' }).press('Tab')

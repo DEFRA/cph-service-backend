@@ -1,4 +1,5 @@
 import Joi from 'joi'
+import { logValidationFailure } from '../../helpers/validation-failures.js'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const MAX_DAYS_FROM_TODAY = 7
@@ -37,17 +38,17 @@ const rawFormSchema = Joi.object({
     }).required().unknown(true)
   }).required().unknown(true),
   meta: Joi.object({
-    timestamp: Joi.string().required()
+    timestamp: Joi.string().required(),
+    referenceNumber: Joi.string().required()
   }).required().unknown(true)
 }).unknown(true)
 
-export function validateRawSubmission (submission) {
+export async function validateRawSubmission (submission, server) {
   try {
-    Joi.assert(submission, rawFormSchema, { abortEarly: false })
+    const validationResult = Joi.attempt(submission, rawFormSchema, { abortEarly: false })
+    return validationResult
   } catch (error) {
-    error.details.forEach(details => {
-      console.error(`Validation Error: ${JSON.stringify(details.message)} - Context: ${JSON.stringify(details.context)}`)
-    })
+    await Promise.all(error.details.map(details => logValidationFailure(server, submission.meta.referenceNumber, details.message, details.context)))
 
     throw new Error(`Invalid submission: ${error.message}`)
   }

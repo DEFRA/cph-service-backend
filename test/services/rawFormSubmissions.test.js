@@ -22,21 +22,23 @@ function createBody (answer = 'first test value') {
 
 describe('#insertRawFormSubmission', () => {
   let updateOne
-  let db
+  let server
 
   beforeEach(() => {
     updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
-    db = {
-      collection: vi.fn().mockReturnValue({ updateOne })
+    server = {
+      db: {
+        collection: vi.fn().mockReturnValue({ updateOne })
+      }
     }
   })
 
   test('Stores the complete original body', async () => {
     const body = createBody()
 
-    await insertRawFormSubmission(db, body)
+    await insertRawFormSubmission(server, body)
 
-    expect(db.collection).toHaveBeenCalledWith(collectionName)
+    expect(server.db.collection).toHaveBeenCalledWith(collectionName)
     expect(updateOne).toHaveBeenCalledWith(
       { referenceNumber },
       {
@@ -55,8 +57,8 @@ describe('#insertRawFormSubmission', () => {
     const firstBody = createBody('first test value')
     const secondBody = createBody('changed test value')
 
-    await insertRawFormSubmission(db, firstBody)
-    await insertRawFormSubmission(db, secondBody)
+    await insertRawFormSubmission(server, firstBody)
+    await insertRawFormSubmission(server, secondBody)
 
     expect(updateOne).toHaveBeenCalledTimes(2)
     expect(updateOne.mock.calls[0][0]).toEqual({ referenceNumber })
@@ -65,16 +67,16 @@ describe('#insertRawFormSubmission', () => {
 
   test('Rejects malformed JSON without storing it', async () => {
     expect(() => insertRawFormSubmission(db, '{invalid')).toThrow()
-    expect(db.collection).not.toHaveBeenCalled()
+    expect(server.db.collection).not.toHaveBeenCalled()
   })
 
   test('Rejects a submission without a reference number', async () => {
     const body = JSON.stringify({ meta: { formId } })
 
-    expect(() => insertRawFormSubmission(db, body)).toThrow(
+    expect(() => insertRawFormSubmission(server, body)).toThrow(
       'Form submission is missing meta.referenceNumber'
     )
-    expect(db.collection).not.toHaveBeenCalled()
+    expect(server.db.collection).not.toHaveBeenCalled()
   })
 
   test('Propagates a MongoDB failure', async () => {
@@ -82,7 +84,7 @@ describe('#insertRawFormSubmission', () => {
     updateOne.mockRejectedValue(databaseError)
 
     await expect(
-      insertRawFormSubmission(db, createBody())
+      insertRawFormSubmission(server, createBody())
     ).rejects.toThrow('Database unavailable')
   })
 })
