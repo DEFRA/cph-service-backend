@@ -235,6 +235,7 @@ Branch names will use the following format.
 ## Reference
 
 - [Core Delivery Platform](https://portal.cdp-int.defra.cloud/documentation/README.md)
+- [Create CPH form field inventory (DEV)](docs/create-cph-form-field-mapping.md)
 
 ## Testing
 
