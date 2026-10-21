@@ -1,19 +1,8 @@
 import { validateRawSubmission } from './cph/validateRawSubmission.js'
 
-export function mapDraftCphRecord (rawSubmission) {
-  const submission = JSON.parse(rawSubmission.body)
-
-  validateRawSubmission(submission)
-
+export function mapDraftCphRecord (rawSubmission, submission) {
   const meta = submission.meta
   const submittedAt = new Date(meta.timestamp)
-  if (
-    typeof meta.timestamp !== 'string' || meta.timestamp.trim() === '' ||
-    Number.isNaN(submittedAt.getTime())
-  ) {
-    throw new Error('Missing or invalid submission timestamp')
-  }
-
   const answers = submission.data?.main ?? {}
 
   const livestockInformation = {}
@@ -40,15 +29,18 @@ export function mapDraftCphRecord (rawSubmission) {
   }
 }
 
-export function insertDraftCphRecord (db, rawSubmission) {
-  const draft = mapDraftCphRecord(rawSubmission)
+export async function insertDraftCphRecord (server, rawSubmission) {
+  const body = JSON.parse(rawSubmission.body)
+  const validatedBody = await validateRawSubmission(body, server)
+
+  const draft = mapDraftCphRecord(rawSubmission, validatedBody)
   const now = new Date()
   const actor = {
     identifier: 'cph-service-backend',
     name: 'CPH Service Backend'
   }
 
-  return db.collection('cph-records').updateOne(
+  return server.db.collection('cph-records').updateOne(
     { 'source.rawSubmissionId': rawSubmission._id },
     {
       $setOnInsert: {

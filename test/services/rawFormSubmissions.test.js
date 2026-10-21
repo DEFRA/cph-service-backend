@@ -43,7 +43,7 @@ describe('#insertRawFormSubmission', () => {
   test('Stores the complete original body', async () => {
     const body = createBody()
 
-    await insertRawFormSubmission(server.db, body)
+    await insertRawFormSubmission(server, body)
 
     const storedSubmission = await collection.findOne({ referenceNumber })
 
@@ -57,8 +57,8 @@ describe('#insertRawFormSubmission', () => {
     const firstBody = createBody('first test value')
     const secondBody = createBody('changed test value')
 
-    await insertRawFormSubmission(server.db, firstBody)
-    await insertRawFormSubmission(server.db, secondBody)
+    await insertRawFormSubmission(server, firstBody)
+    await insertRawFormSubmission(server, secondBody)
 
     const storedSubmissions = await collection
       .find({ referenceNumber })
@@ -72,7 +72,7 @@ describe('#insertRawFormSubmission', () => {
     const firstBody = createBody('first test value')
     const secondBody = createBody('changed test value')
 
-    await insertRawFormSubmission(server.db, firstBody)
+    await insertRawFormSubmission(server, firstBody)
 
     await expect(collection.insertOne({
       referenceNumber,
@@ -90,7 +90,7 @@ describe('#insertRawFormSubmission', () => {
   })
 
   test('Rejects malformed JSON without storing it', async () => {
-    expect(() => insertRawFormSubmission(server.db, '{invalid')).toThrow()
+    expect(() => insertRawFormSubmission(server, '{invalid')).toThrow()
 
     expect(await collection.countDocuments()).toBe(0)
   })
@@ -98,7 +98,7 @@ describe('#insertRawFormSubmission', () => {
   test('Rejects a submission without a reference number', async () => {
     const body = JSON.stringify({ meta: { formId } })
 
-    expect(() => insertRawFormSubmission(server.db, body)).toThrow(
+    expect(() => insertRawFormSubmission(server, body)).toThrow(
       'Form submission is missing meta.referenceNumber'
     )
 
@@ -108,12 +108,14 @@ describe('#insertRawFormSubmission', () => {
   test('Propagates a MongoDB failure', async () => {
     const databaseError = new Error('Database unavailable')
     const updateOne = vi.fn().mockRejectedValue(databaseError)
-    const db = {
-      collection: vi.fn().mockReturnValue({ updateOne })
+    const server = {
+      db: {
+        collection: vi.fn().mockReturnValue({ updateOne })
+      }
     }
 
     await expect(
-      insertRawFormSubmission(db, createBody())
+      insertRawFormSubmission(server, createBody())
     ).rejects.toThrow('Database unavailable')
   })
 })
