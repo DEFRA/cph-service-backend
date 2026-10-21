@@ -25,9 +25,9 @@ const formMetaData = {
       zcjEtV: false,
       aYjRCZ: 'England',
       yDwSNa: {
-        day: today.getDay(),
-        month: today.getMonth() + 1,
-        year: today.getFullYear()
+        day: today.getUTCDate(),
+        month: today.getUTCMonth() + 1,
+        year: today.getUTCFullYear()
       },
       vumpmr: [
         'Cattle',
