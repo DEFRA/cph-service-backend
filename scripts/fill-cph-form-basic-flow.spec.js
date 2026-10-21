@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test'
 
+const today = new Date()
+const day = today.getUTCDate().toString().padStart(2, '0')
+const month = (today.getUTCMonth() + 1).toString().padStart(2, '0')
+const year = today.getUTCFullYear().toString()
+
 test('test', async ({ page }) => {
   await page.goto('http://localhost:3000/')
   await page.getByRole('link', { name: 'Launch form' }).click()
@@ -10,11 +15,11 @@ test('test', async ({ page }) => {
   await page.getByRole('radio', { name: 'England' }).check()
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByRole('textbox', { name: 'Day' }).click()
-  await page.getByRole('textbox', { name: 'Day' }).fill('20')
+  await page.getByRole('textbox', { name: 'Day' }).fill(day)
   await page.getByRole('textbox', { name: 'Day' }).press('Tab')
-  await page.getByRole('textbox', { name: 'Month' }).fill('10')
+  await page.getByRole('textbox', { name: 'Month' }).fill(month)
   await page.getByRole('textbox', { name: 'Month' }).press('Tab')
-  await page.getByRole('textbox', { name: 'Year' }).fill('2026')
+  await page.getByRole('textbox', { name: 'Year' }).fill(year)
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.getByRole('checkbox', { name: 'Cattle' }).check()
   await page.getByRole('button', { name: 'Continue' }).click()
