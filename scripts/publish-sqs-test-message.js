@@ -70,9 +70,9 @@ const formMetaData = {
       ],
       hSjgMw: 'I do not use a reporting service',
       TTQnaU: {
-        day: today.getDay(),
-        month: today.getMonth() + 1,
-        year: today.getFullYear,
+        day: today.getUTCDate(),
+        month: today.getUTCMonth() + 1,
+        year: today.getUTCFullYear(),
       },
       JEmnQb: 'Event',
       DUrooj: 'Town',
