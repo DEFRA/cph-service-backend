@@ -11,14 +11,20 @@ export function mapDraftCphRecord (rawSubmission) {
 
   const answers = submission.data?.main ?? {}
 
+  // Create form answer keys: docs/create-cph-form-field-mapping.md
+  const {
+    vumpmr: livestockTypes,
+    yDwSNa: expectedArrivalDate
+  } = answers
+
   const livestockInformation = {}
 
-  if (answers.vumpmr !== undefined) {
-    livestockInformation.types = [...answers.vumpmr]
+  if (livestockTypes !== undefined) {
+    livestockInformation.types = [...livestockTypes]
   }
 
-  if (answers.yDwSNa !== undefined) {
-    const { day, month, year } = answers.yDwSNa
+  if (expectedArrivalDate !== undefined) {
+    const { day, month, year } = expectedArrivalDate
     livestockInformation.expectedArrivalDate = `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
   }
   return {
