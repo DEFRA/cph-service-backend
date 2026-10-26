@@ -4,7 +4,8 @@ import {
   beforeEach,
   describe,
   expect,
-  test
+  test,
+  vi
 } from 'vitest'
 
 import {
@@ -16,6 +17,16 @@ import {
 // title; postal address structure and UPRN; location identifiers, primary-location
 // indicator and land ownership; country and hobbyist classification; additional
 // information; and cattle details (count, purpose, ear tags, movement dates, vet info)
+
+vi.mock('#/plugins/map-data.js', () => ({
+  mapData: {
+    plugin: {
+      name: 'map-data',
+      version: '1.0.0',
+      register: async () => {}
+    }
+  }
+}))
 
 const rawSubmission = {
   _id: '6ac756ca3fce9c6b24472281',

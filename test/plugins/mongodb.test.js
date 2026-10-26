@@ -1,5 +1,22 @@
 import { Db, MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
+import {
+  beforeAll,
+  describe,
+  expect,
+  test,
+  vi
+} from 'vitest'
+
+vi.mock('#/plugins/map-data.js', () => ({
+  mapData: {
+    plugin: {
+      name: 'map-data',
+      version: '1.0.0',
+      register: async () => {}
+    }
+  }
+}))
 
 describe('#mongoDb', () => {
   let server
