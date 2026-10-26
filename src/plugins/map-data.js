@@ -19,7 +19,7 @@ export const mapData = {
   }
 }
 
-async function load(server, options) {
+async function load (server, options) {
   // Guards against concurrent loads when more than one instance starts up.
   const lock = await server.locker.lock('cph-map-data-load')
 

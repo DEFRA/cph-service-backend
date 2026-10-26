@@ -42,7 +42,7 @@ export const mongoDb = {
   }
 }
 
-export async function createCollection(db, collectionName) {
+export async function createCollection (db, collectionName) {
   const collections = await db
     .listCollections({ name: collectionName }, { nameOnly: true })
     .toArray()

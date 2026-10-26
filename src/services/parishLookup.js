@@ -11,7 +11,7 @@ const SORT = { _id: 1 }
  * Finds the parishes containing an OSGB36 easting/northing by reprojecting the
  * point to WGS84 and querying the 2dsphere-indexed geometry.
  */
-export function findParishesByWgs84(db, easting, northing) {
+export function findParishesByWgs84 (db, easting, northing) {
   const [longitude, latitude] = osgb36ToWgs84([easting, northing])
 
   return db

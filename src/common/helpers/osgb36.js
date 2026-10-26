@@ -8,7 +8,7 @@ const NADGRID = 'OSTN15_NTv2_OSGBtoETRS'
 
 let converter
 
-export function initOsgb36ToWgs84(gridFilePath) {
+export function initOsgb36ToWgs84 (gridFilePath) {
   const oSTN15 = readFileSync(gridFilePath).buffer
 
   proj4.nadgrid(NADGRID, oSTN15)
@@ -20,7 +20,7 @@ export function initOsgb36ToWgs84(gridFilePath) {
   converter = proj4(OSGB36, WGS84)
 }
 
-export function osgb36ToWgs84(point) {
+export function osgb36ToWgs84 (point) {
   if (!converter) {
     throw new Error('initOsgb36ToWgs84 must be called before converting points')
   }
@@ -32,7 +32,7 @@ export function osgb36ToWgs84(point) {
  * Walks a GeoJSON coordinates array of any nesting depth, converting each
  * [easting, northing] pair to [longitude, latitude].
  */
-export function convertCoordinates(coordinates) {
+export function convertCoordinates (coordinates) {
   if (typeof coordinates[0] === 'number') {
     return osgb36ToWgs84(coordinates)
   }
@@ -40,7 +40,7 @@ export function convertCoordinates(coordinates) {
   return coordinates.map(convertCoordinates)
 }
 
-export function convertGeometry(geometry) {
+export function convertGeometry (geometry) {
   return {
     type: geometry.type,
     coordinates: convertCoordinates(geometry.coordinates)

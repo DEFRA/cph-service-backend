@@ -10,7 +10,7 @@ export const MAP_DATA_COLLECTION = 'cph-map-data'
 
 const BATCH_SIZE = 250
 
-export async function isMapDataLoaded(db) {
+export async function isMapDataLoaded (db) {
   const count = await db
     .collection(MAP_DATA_COLLECTION)
     .estimatedDocumentCount()
@@ -18,7 +18,7 @@ export async function isMapDataLoaded(db) {
   return count > 0
 }
 
-export async function loadMapData(db, logger, { geoJsonPath }) {
+export async function loadMapData (db, logger, { geoJsonPath }) {
   const collection = db.collection(MAP_DATA_COLLECTION)
 
   // Indexed up front so that geometry MongoDB cannot index is rejected on insert
@@ -58,7 +58,7 @@ export async function loadMapData(db, logger, { geoJsonPath }) {
   return { inserted, rejected }
 }
 
-async function insertBatch(collection, batch, logger) {
+async function insertBatch (collection, batch, logger) {
   try {
     const { insertedCount } = await collection.insertMany(batch, {
       ordered: false
@@ -85,13 +85,13 @@ async function insertBatch(collection, batch, logger) {
 
 // Geo write errors embed the whole rejected document, so collapse long runs of
 // coordinates to keep the reason readable in the logs.
-function summariseWriteError(errmsg) {
+function summariseWriteError (errmsg) {
   return String(errmsg)
     .replace(/[-\d.,\s[\]]{40,}/g, ' ... ')
     .slice(0, 300)
 }
 
-function toDocument(feature) {
+function toDocument (feature) {
   const {
     FID,
     FIRST_NM,
@@ -123,7 +123,7 @@ function toDocument(feature) {
  * rejects. Runs on OSGB36 metres, so spike thresholds are in metres. Only the
  * indexed WGS84 geometry is repaired; geometryOsgb36 stays as supplied.
  */
-function repairGeometry(geometry) {
+function repairGeometry (geometry) {
   const despiked = {
     type: geometry.type,
     coordinates:
@@ -144,7 +144,7 @@ const MAX_SPIKE_METRES = 1
  * Drops the vertex closing the spike. Only this adjacent-edge shape is handled,
  * so other self-intersections still get rejected on insert.
  */
-function removeSpikes(ring) {
+function removeSpikes (ring) {
   const points = ring.slice(0, -1)
   const n = points.length
   const spikes = new Set()
@@ -169,11 +169,11 @@ function removeSpikes(ring) {
   return [...kept, kept[0]]
 }
 
-function distance([x1, y1], [x2, y2]) {
+function distance ([x1, y1], [x2, y2]) {
   return Math.hypot(x2 - x1, y2 - y1)
 }
 
-function segmentsCross(p1, p2, p3, p4) {
+function segmentsCross (p1, p2, p3, p4) {
   const d1 = turn(p3, p4, p1)
   const d2 = turn(p3, p4, p2)
   const d3 = turn(p1, p2, p3)
@@ -182,7 +182,7 @@ function segmentsCross(p1, p2, p3, p4) {
   return d1 * d2 < 0 && d3 * d4 < 0
 }
 
-function turn([ox, oy], [ax, ay], [bx, by]) {
+function turn ([ox, oy], [ax, ay], [bx, by]) {
   return (ax - ox) * (by - oy) - (ay - oy) * (bx - ox)
 }
 
@@ -191,7 +191,7 @@ function turn([ox, oy], [ax, ay], [bx, by]) {
  * because every ring after the first must sit inside the first. Moves the ring
  * that contains all the others to the front.
  */
-function repairRingOrder(geometry) {
+function repairRingOrder (geometry) {
   return {
     type: geometry.type,
     coordinates:
@@ -201,7 +201,7 @@ function repairRingOrder(geometry) {
   }
 }
 
-function outerRingFirst(rings) {
+function outerRingFirst (rings) {
   if (rings.length < 2) {
     return rings
   }
@@ -217,14 +217,14 @@ function outerRingFirst(rings) {
   return [rings[outer], ...rings.filter((_, i) => i !== outer)]
 }
 
-function ringContainsPoint(ring, [x, y]) {
+function ringContainsPoint (ring, [x, y]) {
   let inside = false
 
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const [xi, yi] = ring[i]
     const [xj, yj] = ring[j]
 
-    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+    if (((yi > y) !== (yj > y)) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
       inside = !inside
     }
   }
