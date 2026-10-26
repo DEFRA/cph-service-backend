@@ -1,5 +1,10 @@
 import { isMapDataLoaded, loadMapData } from '#/services/mapData.js'
 import { initOsgb36ToWgs84 } from '#/common/helpers/osgb36.js'
+import {
+  createS3Client,
+  getObjectBuffer,
+  getObjectStream
+} from '#/helpers/s3.js'
 
 export const mapData = {
   plugin: {
@@ -7,11 +12,14 @@ export const mapData = {
     version: '1.0.0',
     register: async function (server, options) {
       // Needed by the lookup routes too, so it cannot live inside the load path.
-      initOsgb36ToWgs84(options.ostn15Path)
+      const s3 = createS3Client(options.awsRegion)
+      initOsgb36ToWgs84(
+        await getObjectBuffer(s3, options.bucket, options.ostn15Key)
+      )
 
       // Loading is slow, so it runs in the background rather than blocking startup.
       server.events.on('start', () => {
-        load(server, options).catch((e) =>
+        load(server, s3, options).catch((e) =>
           server.logger.error(e, 'Failed to load map data')
         )
       })
@@ -19,7 +27,7 @@ export const mapData = {
   }
 }
 
-async function load (server, options) {
+async function load (server, s3, options) {
   // Guards against concurrent loads when more than one instance starts up.
   const lock = await server.locker.lock('cph-map-data-load')
 
@@ -35,10 +43,15 @@ async function load (server, options) {
     }
 
     server.logger.info('Loading map data')
+    const geoJsonStream = await getObjectStream(
+      s3,
+      options.bucket,
+      options.geoJsonKey
+    )
     const { inserted, rejected } = await loadMapData(
       server.db,
       server.logger,
-      options
+      { geoJsonStream }
     )
     server.logger.info(
       `Loaded ${inserted} map features (${rejected} rejected)`

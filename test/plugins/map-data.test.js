@@ -2,6 +2,15 @@ import { mapData } from '#/plugins/map-data.js'
 import { isMapDataLoaded, loadMapData } from '#/services/mapData.js'
 import { initOsgb36ToWgs84 } from '#/common/helpers/osgb36.js'
 
+const gridBuffer = Buffer.from('grid')
+const geoJsonStream = { stream: true }
+
+vi.mock('#/helpers/s3.js', () => ({
+  createS3Client: vi.fn(() => 's3'),
+  getObjectBuffer: vi.fn(async () => gridBuffer),
+  getObjectStream: vi.fn(async () => geoJsonStream)
+}))
+
 vi.mock('#/services/mapData.js', () => ({
   isMapDataLoaded: vi.fn(),
   loadMapData: vi.fn()
@@ -11,7 +20,12 @@ vi.mock('#/common/helpers/osgb36.js', () => ({
 }))
 
 describe('#mapData plugin', () => {
-  const options = { ostn15Path: 'grid.gsb', geoJsonPath: 'data.geojson' }
+  const options = {
+    bucket: 'bucket',
+    awsRegion: 'eu-west-2',
+    ostn15Key: 'grid.gsb',
+    geoJsonKey: 'data.geojson'
+  }
   let server
   let lock
   let startHandler
@@ -44,7 +58,7 @@ describe('#mapData plugin', () => {
   })
 
   test('Should initialise the converter at registration', () => {
-    expect(initOsgb36ToWgs84).toHaveBeenCalledWith('grid.gsb')
+    expect(initOsgb36ToWgs84).toHaveBeenCalledWith(gridBuffer)
     expect(server.events.on).toHaveBeenCalledWith('start', expect.any(Function))
   })
 
@@ -52,7 +66,9 @@ describe('#mapData plugin', () => {
     await start()
 
     expect(server.locker.lock).toHaveBeenCalledWith('cph-map-data-load')
-    expect(loadMapData).toHaveBeenCalledWith(server.db, server.logger, options)
+    expect(loadMapData).toHaveBeenCalledWith(server.db, server.logger, {
+      geoJsonStream
+    })
     expect(server.logger.info).toHaveBeenCalledWith(
       'Loaded 5 map features (1 rejected)'
     )

@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-
 import proj4 from 'proj4'
 
 const OSGB36 = 'EPSG:27700'
@@ -8,8 +6,11 @@ const NADGRID = 'OSTN15_NTv2_OSGBtoETRS'
 
 let converter
 
-export function initOsgb36ToWgs84 (gridFilePath) {
-  const oSTN15 = readFileSync(gridFilePath).buffer
+export function initOsgb36ToWgs84 (gridFile) {
+  const oSTN15 = gridFile.buffer.slice(
+    gridFile.byteOffset,
+    gridFile.byteOffset + gridFile.byteLength
+  )
 
   proj4.nadgrid(NADGRID, oSTN15)
   proj4.defs(

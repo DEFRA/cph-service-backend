@@ -18,7 +18,11 @@ export async function isMapDataLoaded (db) {
   return count > 0
 }
 
-export async function loadMapData (db, logger, { geoJsonPath }) {
+export async function loadMapData (
+  db,
+  logger,
+  { geoJsonPath, geoJsonStream = createReadStream(geoJsonPath) }
+) {
   const collection = db.collection(MAP_DATA_COLLECTION)
 
   // Indexed up front so that geometry MongoDB cannot index is rejected on insert
@@ -26,7 +30,7 @@ export async function loadMapData (db, logger, { geoJsonPath }) {
   await collection.createIndex({ geometry: '2dsphere' })
   await collection.createIndex({ cphNumber: 1 })
 
-  const features = createReadStream(geoJsonPath)
+  const features = geoJsonStream
     .pipe(parser.asStream())
     .pipe(pick.asStream({ filter: 'features' }))
     .pipe(streamArray.asStream())
