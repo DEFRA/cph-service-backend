@@ -5,6 +5,9 @@ import {
 } from '@aws-sdk/client-sqs'
 
 import { insertRawFormSubmission } from '../services/rawFormSubmissions.js'
+
+import { insertDraftCphRecord } from '../services/cphRecords.js'
+
 const waitTimeSeconds = 20
 const maxNumberOfMessages = 10
 
@@ -92,6 +95,17 @@ export async function processMessage (
 ) {
   try {
     await insertRawFormSubmission(db, message.Body)
+    const submission = JSON.parse(message.Body)
+    const rawSubmission = await db.collection('raw-form-submissions')
+      .findOne({
+        referenceNumber: submission.meta.referenceNumber
+      })
+
+    if (!rawSubmission) {
+      throw new Error('Stored raw submission not found')
+    }
+
+    await insertDraftCphRecord(db, rawSubmission)
   } catch (error) {
     logger.error(
       error,

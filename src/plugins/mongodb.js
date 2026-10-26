@@ -61,4 +61,11 @@ async function createIndexes (db) {
   await db
     .collection('raw-form-submissions')
     .createIndex({ referenceNumber: 1 }, { unique: true })
+
+  await db.collection('cph-records').createIndex(
+    { 'source.rawSubmissionId': 1 },
+    {
+      unique: true,
+      partialFilterExpression: { 'source.rawSubmissionId': { $exists: true } }
+    })
 }

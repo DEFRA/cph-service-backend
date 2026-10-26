@@ -1,0 +1,198 @@
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test
+} from 'vitest'
+
+import {
+  insertDraftCphRecord,
+  mapDraftCphRecord
+} from '../../src/services/cphRecords.js'
+
+// TODO: extend mapping once data architects confirm destinations for party roles;
+// title; postal address structure and UPRN; location identifiers, primary-location
+// indicator and land ownership; country and hobbyist classification; additional
+// information; and cattle details (count, purpose, ear tags, movement dates, vet info)
+
+const rawSubmission = {
+  _id: '6ac756ca3fce9c6b24472281',
+  referenceNumber: 'WSP-ZSC-JJN',
+  formId: '6a980cc01db4dc2e19b44fdb',
+  receivedAt: new Date('2026-10-08T08:39:38.363Z'),
+  body: JSON.stringify({
+    meta: {
+      schemaVersion: 1,
+      timestamp: '2026-10-08T08:39:38.073Z',
+      referenceNumber: 'WSP-ZSC-JJN',
+      formId: '6a980cc01db4dc2e19b44fdb',
+      versionMetadata: {
+        versionNumber: 2,
+        createdAt: '2026-09-02T13:57:07.816Z'
+      }
+    },
+    data: {
+      main: {
+        vumpmr: ['Cattle'],
+        yDwSNa: { day: 11, month: 10, year: 2026 }
+      }
+    }
+  })
+}
+
+describe('mapDraftCphRecord', () => {
+  test('sets the lifecycle status to Draft', () => {
+    const draft = mapDraftCphRecord(rawSubmission)
+
+    expect(draft.lifecycleStatus).toBe('Draft')
+  })
+
+  test('maps the source metadata from the raw submission', () => {
+    const draft = mapDraftCphRecord(rawSubmission)
+
+    expect(draft.source).toEqual({
+      rawSubmissionId: rawSubmission._id,
+      applicationReference: 'WSP-ZSC-JJN',
+      formId: '6a980cc01db4dc2e19b44fdb',
+      formVersion: 2,
+      submittedAt: new Date('2026-10-08T08:39:38.073Z'),
+      receivedAt: rawSubmission.receivedAt
+    })
+  })
+
+  test('maps the livestock types', () => {
+    const draft = mapDraftCphRecord(rawSubmission)
+
+    expect(draft.livestockInformation.types).toEqual(['Cattle'])
+  })
+
+  test('maps the expected arrival date', () => {
+    const draft = mapDraftCphRecord(rawSubmission)
+
+    expect(draft.livestockInformation.expectedArrivalDate).toBe('2026-10-11')
+  })
+
+  test.each([undefined, null, '', '   ', 'not-a-date'])(
+    'throws an error for invalid submission timestamp: %p',
+    (invalidTimestamp) => {
+      const rawSubmissionWithInvalidTimestamp = {
+        ...rawSubmission,
+        body: JSON.stringify({
+          ...JSON.parse(rawSubmission.body),
+          meta: {
+            ...JSON.parse(rawSubmission.body).meta,
+            timestamp: invalidTimestamp
+          }
+        })
+      }
+
+      expect(() => mapDraftCphRecord(rawSubmissionWithInvalidTimestamp)).toThrow(
+        'Missing or invalid submission timestamp'
+      )
+    }
+  )
+
+  test('accepts a submission without livestock answers', () => {
+    const rawSubmissionWithoutLivestock = {
+      ...rawSubmission,
+      body: JSON.stringify({
+        meta: JSON.parse(rawSubmission.body).meta,
+        data: {
+          main: {}
+        }
+      })
+    }
+
+    const draft = mapDraftCphRecord(rawSubmissionWithoutLivestock)
+
+    expect(draft.lifecycleStatus).toBe('Draft')
+    expect(draft.livestockInformation).toEqual({})
+  })
+})
+
+describe('insertDraftCphRecord', () => {
+  let server
+  let collection
+
+  beforeAll(async () => {
+    const { createServer } = await import('#/server.js')
+
+    server = await createServer()
+    await server.initialize()
+    collection = server.db.collection('cph-records')
+  })
+
+  beforeEach(async () => {
+    await collection.deleteMany({})
+  })
+
+  afterAll(async () => {
+    await server.stop({ timeout: 1000 })
+  })
+
+  test('stores a draft CPH record linked to its raw submission', async () => {
+    await insertDraftCphRecord(server.db, rawSubmission)
+
+    const storedRecord = await collection.findOne({
+      'source.rawSubmissionId': rawSubmission._id
+    })
+
+    expect(storedRecord).not.toBeNull()
+    expect(storedRecord.lifecycleStatus).toBe('Draft')
+    expect(storedRecord.source.applicationReference).toBe('WSP-ZSC-JJN')
+    expect(storedRecord.livestockInformation.types).toEqual(['Cattle'])
+    expect(storedRecord.livestockInformation.expectedArrivalDate).toBe('2026-10-11')
+    expect(storedRecord.source.formId).toBe('6a980cc01db4dc2e19b44fdb')
+    expect(storedRecord.source.formVersion).toBe(2)
+    expect(storedRecord.source.submittedAt).toEqual(new Date('2026-10-08T08:39:38.073Z'))
+    expect(storedRecord.source.receivedAt).toEqual(rawSubmission.receivedAt)
+    expect(storedRecord.createdAt).toBeInstanceOf(Date)
+    expect(storedRecord.modifiedAt).toEqual(storedRecord.createdAt)
+    expect(storedRecord.createdBy).toEqual({
+      identifier: 'cph-service-backend',
+      name: 'CPH Service Backend'
+    })
+    expect(storedRecord.modifiedBy).toEqual(storedRecord.createdBy)
+  })
+
+  test('creates only one record when processed twice', async () => {
+    await insertDraftCphRecord(server.db, rawSubmission)
+    await insertDraftCphRecord(server.db, rawSubmission)
+
+    expect(await collection.countDocuments({
+      'source.rawSubmissionId': rawSubmission._id
+    })).toBe(1)
+  })
+
+  test('preserves later changes when processed again', async () => {
+    const filter = {
+      'source.rawSubmissionId': rawSubmission._id
+    }
+
+    await insertDraftCphRecord(server.db, rawSubmission)
+
+    await collection.updateOne(filter, {
+      $set: {
+        'livestockInformation.expectedArrivalDate': '2026-11-11'
+      }
+    })
+
+    await insertDraftCphRecord(server.db, rawSubmission)
+
+    const storedRecord = await collection.findOne(filter)
+    expect(storedRecord.livestockInformation.expectedArrivalDate).toBe('2026-11-11')
+  })
+
+  test('rejects a duplicate raw submission link at database level', async () => {
+    await insertDraftCphRecord(server.db, rawSubmission)
+
+    await expect(collection.insertOne({
+      lifecycleStatus: 'Draft',
+      source: {
+        rawSubmissionId: rawSubmission._id
+      }
+    })).rejects.toThrow(/E11000 duplicate key/i)
+  })
+})
