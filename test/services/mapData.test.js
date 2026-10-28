@@ -5,7 +5,8 @@ import { join } from 'node:path'
 import {
   isMapDataLoaded,
   loadMapData,
-  MAP_DATA_COLLECTION
+  MAP_DATA_COLLECTION,
+  MAP_DATA_STATUS_COLLECTION
 } from '#/services/mapData.js'
 
 // Identity conversion keeps the repaired OSGB36 coordinates easy to assert on.
@@ -54,7 +55,10 @@ describe('#mapData service', () => {
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'map-data-'))
     collection = {
-      estimatedDocumentCount: vi.fn(),
+      findOne: vi.fn(),
+      deleteOne: vi.fn().mockResolvedValue({}),
+      deleteMany: vi.fn().mockResolvedValue({}),
+      updateOne: vi.fn().mockResolvedValue({}),
       createIndex: vi.fn().mockResolvedValue('index'),
       insertMany: vi
         .fn()
@@ -69,15 +73,15 @@ describe('#mapData service', () => {
   })
 
   describe('isMapDataLoaded', () => {
-    test('Should be true when the collection has documents', async () => {
-      collection.estimatedDocumentCount.mockResolvedValue(3)
+    test('Should be true when the completion marker exists', async () => {
+      collection.findOne.mockResolvedValue({ _id: 'load', complete: true })
 
       expect(await isMapDataLoaded(db)).toBe(true)
-      expect(db.collection).toHaveBeenCalledWith(MAP_DATA_COLLECTION)
+      expect(db.collection).toHaveBeenCalledWith(MAP_DATA_STATUS_COLLECTION)
     })
 
-    test('Should be false when the collection is empty', async () => {
-      collection.estimatedDocumentCount.mockResolvedValue(0)
+    test('Should be false when there is no completion marker', async () => {
+      collection.findOne.mockResolvedValue(null)
 
       expect(await isMapDataLoaded(db)).toBe(false)
     })
@@ -111,6 +115,20 @@ describe('#mapData service', () => {
           }
         ],
         { ordered: false }
+      )
+    })
+
+    test('Should clear partial data first and mark completion last', async () => {
+      const geoJsonPath = writeGeoJson([feature(1, polygon(square))])
+
+      await loadMapData(db, logger, { geoJsonPath })
+
+      expect(collection.deleteMany).toHaveBeenCalledWith({})
+      expect(collection.deleteOne.mock.invocationCallOrder[0]).toBeLessThan(
+        collection.insertMany.mock.invocationCallOrder[0]
+      )
+      expect(collection.updateOne.mock.invocationCallOrder[0]).toBeGreaterThan(
+        collection.insertMany.mock.invocationCallOrder[0]
       )
     })
 

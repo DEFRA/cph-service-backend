@@ -7,15 +7,18 @@ import { streamArray } from 'stream-json/streamers/stream-array.js'
 import { convertGeometry } from '#/helpers/osgb36.js'
 
 export const MAP_DATA_COLLECTION = 'cph-map-data'
+export const MAP_DATA_STATUS_COLLECTION = 'cph-map-data-status'
 
+const LOAD_STATUS_ID = 'load'
 const BATCH_SIZE = 250
 
+// Document presence is not enough: an interrupted import leaves partial data.
 export async function isMapDataLoaded (db) {
-  const count = await db
-    .collection(MAP_DATA_COLLECTION)
-    .estimatedDocumentCount()
+  const status = await db
+    .collection(MAP_DATA_STATUS_COLLECTION)
+    .findOne({ _id: LOAD_STATUS_ID, complete: true })
 
-  return count > 0
+  return status !== null
 }
 
 export async function loadMapData (
@@ -24,6 +27,11 @@ export async function loadMapData (
   { geoJsonPath, geoJsonStream = createReadStream(geoJsonPath) }
 ) {
   const collection = db.collection(MAP_DATA_COLLECTION)
+  const status = db.collection(MAP_DATA_STATUS_COLLECTION)
+
+  // Discard any partial data from an interrupted run so the reload starts clean.
+  await status.deleteOne({ _id: LOAD_STATUS_ID })
+  await collection.deleteMany({})
 
   // Indexed up front so that geometry MongoDB cannot index is rejected on insert
   // rather than failing the whole build at the end of a long load.
@@ -58,6 +66,12 @@ export async function loadMapData (
   if (batch.length) {
     await flush()
   }
+
+  await status.updateOne(
+    { _id: LOAD_STATUS_ID },
+    { $set: { complete: true, completedAt: new Date(), inserted, rejected } },
+    { upsert: true }
+  )
 
   return { inserted, rejected }
 }
