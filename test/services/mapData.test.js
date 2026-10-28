@@ -5,7 +5,6 @@ import { join } from 'node:path'
 import {
   isMapDataLoaded,
   loadMapData,
-  MAP_DATA_COLLECTION,
   MAP_DATA_STATUS_COLLECTION
 } from '#/services/mapData.js'
 
