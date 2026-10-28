@@ -9,7 +9,7 @@ import {
 } from '#/services/mapData.js'
 
 // Identity conversion keeps the repaired OSGB36 coordinates easy to assert on.
-vi.mock('#/common/helpers/osgb36.js', () => ({
+vi.mock('#/helpers/osgb36.js', () => ({
   convertGeometry: (geometry) => geometry
 }))
 

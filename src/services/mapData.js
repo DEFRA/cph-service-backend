@@ -4,7 +4,7 @@ import { parser } from 'stream-json'
 import { pick } from 'stream-json/filters/pick.js'
 import { streamArray } from 'stream-json/streamers/stream-array.js'
 
-import { convertGeometry } from '#/common/helpers/osgb36.js'
+import { convertGeometry } from '#/helpers/osgb36.js'
 
 export const MAP_DATA_COLLECTION = 'cph-map-data'
 

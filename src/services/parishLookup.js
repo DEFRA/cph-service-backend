@@ -1,5 +1,5 @@
 import { MAP_DATA_COLLECTION } from '#/services/mapData.js'
-import { osgb36ToWgs84 } from '#/common/helpers/osgb36.js'
+import { osgb36ToWgs84 } from '#/helpers/osgb36.js'
 
 const PROJECTION = { _id: 0, name: 1, countyRef: 1, parishRef: 1 }
 

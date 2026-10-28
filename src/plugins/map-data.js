@@ -1,5 +1,5 @@
 import { isMapDataLoaded, loadMapData } from '#/services/mapData.js'
-import { initOsgb36ToWgs84 } from '#/common/helpers/osgb36.js'
+import { initOsgb36ToWgs84 } from '#/helpers/osgb36.js'
 import {
   createS3Client,
   getObjectBuffer,

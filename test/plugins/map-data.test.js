@@ -1,6 +1,6 @@
 import { mapData } from '#/plugins/map-data.js'
 import { isMapDataLoaded, loadMapData } from '#/services/mapData.js'
-import { initOsgb36ToWgs84 } from '#/common/helpers/osgb36.js'
+import { initOsgb36ToWgs84 } from '#/helpers/osgb36.js'
 
 const gridBuffer = Buffer.from('grid')
 const geoJsonStream = { stream: true }
@@ -15,7 +15,7 @@ vi.mock('#/services/mapData.js', () => ({
   isMapDataLoaded: vi.fn(),
   loadMapData: vi.fn()
 }))
-vi.mock('#/common/helpers/osgb36.js', () => ({
+vi.mock('#/helpers/osgb36.js', () => ({
   initOsgb36ToWgs84: vi.fn()
 }))
 
