@@ -12,21 +12,6 @@ vi.mock('../../src/services/cph/validateRawSubmission.js', () => ({
   validateRawSubmissionMeta: vi.fn()
 }))
 
-// TODO: extend mapping once data architects confirm destinations for party roles;
-// title; postal address structure and UPRN; location identifiers, primary-location
-// indicator and land ownership; country and hobbyist classification; additional
-// information; and cattle details (count, purpose, ear tags, movement dates, vet info)
-
-vi.mock('#/plugins/map-data.js', () => ({
-  mapData: {
-    plugin: {
-      name: 'map-data',
-      version: '1.0.0',
-      register: async () => {}
-    }
-  }
-}))
-
 const body = {
   meta: {
     schemaVersion: 1,
@@ -217,10 +202,10 @@ describe('insertDraftCphRecord', () => {
     const updateOne = vi.fn().mockRejectedValue(dbError)
     const server = {
       db: { collection: vi.fn(() => ({ updateOne })) },
-      logger: { error: vi.fn() }
+      log: { error: vi.fn() }
     }
 
-    await expect(insertDraftCphRecord(server, rawSubmission)).rejects.toThrow(dbError)
-    expect(server.logger.error).toHaveBeenCalledWith(dbError, 'Failed to insert draft CPH record')
+    await expect(insertDraftCphRecord(server, rawSubmission)).rejects.toThrow('Mongo insert failed')
+    expect(server.log.error).toHaveBeenCalledWith('Failed to insert draft CPH record:', dbError)
   })
 })
