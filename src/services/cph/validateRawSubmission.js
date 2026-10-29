@@ -48,8 +48,6 @@ export async function validateRawSubmissionBody (submission, server) {
   try {
     Joi.assert(submission, rawBodySchema, { abortEarly: false })
   } catch (error) {
-    server.logger.error(error, 'Validation failed for raw submission body')
-
     error.details.forEach(details => validationErrors.push(
       createValidationFailure(details.message, details.context)
     ))
@@ -75,8 +73,6 @@ export async function validateRawSubmissionMeta (submission, server) {
   try {
     Joi.assert(submission, rawMetaSchema, { abortEarly: false })
   } catch (error) {
-    server.logger.error(error, 'Validation failed for raw submission meta')
-
     error.details.forEach(details => validationErrors.push(
       createValidationFailure(details.message, details.context)
     ))
