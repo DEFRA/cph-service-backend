@@ -1,27 +1,16 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-  vi
-} from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
+import { insertDraftCphRecord } from '../../src/services/cphRecords.js'
 import {
-  insertDraftCphRecord,
-  mapDraftCphRecord
-} from '../../src/services/cphRecords.js'
-import { validateRawSubmission } from '../../src/services/cph/validateRawSubmission.js'
+  validateRawSubmissionBody,
+  validateRawSubmissionMeta
+} from '../../src/services/cph/validateRawSubmission.js'
+import * as validationFailureModule from '../../src/helpers/validation-failure.js'
 
 vi.mock('../../src/services/cph/validateRawSubmission.js', () => ({
-  validateRawSubmission: vi.fn()
+  validateRawSubmissionBody: vi.fn(),
+  validateRawSubmissionMeta: vi.fn()
 }))
-
-// TODO: extend mapping once data architects confirm destinations for party roles;
-// title; postal address structure and UPRN; location identifiers, primary-location
-// indicator and land ownership; country and hobbyist classification; additional
-// information; and cattle details (count, purpose, ear tags, movement dates, vet info)
 
 const body = {
   meta: {
@@ -50,161 +39,173 @@ const rawSubmission = {
   body: JSON.stringify(body)
 }
 
-describe('mapDraftCphRecord', () => {
-  test('sets the lifecycle status to Draft', () => {
-    const draft = mapDraftCphRecord(rawSubmission, body)
-
-    expect(draft.lifecycleStatus).toBe('Draft')
-  })
-
-  test('maps the source metadata from the raw submission', () => {
-    const draft = mapDraftCphRecord(rawSubmission, body)
-
-    expect(draft.source).toEqual({
-      rawSubmissionId: rawSubmission._id,
-      applicationReference: 'WSP-ZSC-JJN',
-      formId: '6a980cc01db4dc2e19b44fdb',
-      formVersion: 2,
-      submittedAt: new Date('2026-10-08T08:39:38.073Z'),
-      receivedAt: rawSubmission.receivedAt
-    })
-  })
-
-  test('maps the livestock types', () => {
-    const draft = mapDraftCphRecord(rawSubmission, body)
-
-    expect(draft.livestockInformation.types).toEqual(['Cattle'])
-  })
-
-  test('maps the expected arrival date', () => {
-    const draft = mapDraftCphRecord(rawSubmission, body)
-
-    expect(draft.livestockInformation.expectedArrivalDate).toBe('2026-10-21')
-  })
-
-  test('accepts a submission without livestock answers', () => {
-    const emptyBody = {
-      meta: body.meta,
-      data: {
-        main: {}
-      }
-    }
-
-    const rawSubmissionWithoutLivestock = {
-      ...rawSubmission,
-      body: JSON.stringify(emptyBody)
-    }
-
-    const draft = mapDraftCphRecord(rawSubmissionWithoutLivestock, emptyBody)
-
-    expect(draft.lifecycleStatus).toBe('Draft')
-    expect(draft.livestockInformation).toEqual({})
-  })
-})
+const now = new Date('2026-10-09T10:00:00.000Z')
+const actor = {
+  identifier: 'cph-service-backend',
+  name: 'CPH Service Backend'
+}
 
 describe('insertDraftCphRecord', () => {
-  let server
-  let collection
-
-  beforeAll(async () => {
-    const { createServer } = await import('#/server.js')
-
-    server = await createServer()
-    await server.initialize()
-    collection = server.db.collection('cph-records')
-  })
-
-  beforeEach(async () => {
-    await collection.deleteMany({})
-    validateRawSubmission.mockReset()
-    validateRawSubmission.mockResolvedValue(body)
+  beforeEach(() => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-10-16T12:45:16.789Z'))
+    vi.setSystemTime(now)
+    vi.clearAllMocks()
+    vi.spyOn(validationFailureModule, 'createValidationFailure')
+    validateRawSubmissionMeta.mockResolvedValue([])
+    validateRawSubmissionBody.mockResolvedValue([])
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  afterAll(async () => {
-    await server.stop({ timeout: 1000 })
-  })
+  test('creates a draft record and validates both meta and body data', async () => {
+    const metaErrors = [{
+      timestamp: '2026-10-09T10:00:00.000Z',
+      failure: '"meta.referenceNumber" is required',
+      context: { key: 'referenceNumber', label: 'referenceNumber' }
+    }]
+    const bodyErrors = [{
+      timestamp: '2026-10-09T10:00:00.000Z',
+      failure: '"data.main.vumpmr" must contain at least 1 items',
+      context: { key: 'vumpmr', label: 'vumpmr' }
+    }]
 
-  test('stores a draft CPH record linked to its raw submission', async () => {
-    await insertDraftCphRecord(server, rawSubmission)
+    validateRawSubmissionMeta.mockResolvedValue(metaErrors)
+    validateRawSubmissionBody.mockResolvedValue(bodyErrors)
 
-    const storedRecord = await collection.findOne({
-      'source.rawSubmissionId': rawSubmission._id
-    })
-
-    expect(storedRecord).not.toBeNull()
-    expect(storedRecord.lifecycleStatus).toBe('Draft')
-    expect(storedRecord.source.applicationReference).toBe('WSP-ZSC-JJN')
-    expect(storedRecord.livestockInformation.types).toEqual(['Cattle'])
-    expect(storedRecord.livestockInformation.expectedArrivalDate).toBe('2026-10-21')
-    expect(storedRecord.source.formId).toBe('6a980cc01db4dc2e19b44fdb')
-    expect(storedRecord.source.formVersion).toBe(2)
-    expect(storedRecord.source.submittedAt).toEqual(new Date('2026-10-08T08:39:38.073Z'))
-    expect(storedRecord.source.receivedAt).toEqual(rawSubmission.receivedAt)
-    expect(storedRecord.createdAt).toBeInstanceOf(Date)
-    expect(storedRecord.modifiedAt).toEqual(storedRecord.createdAt)
-    expect(storedRecord.createdBy).toEqual({
-      identifier: 'cph-service-backend',
-      name: 'CPH Service Backend'
-    })
-    expect(storedRecord.modifiedBy).toEqual(storedRecord.createdBy)
-  })
-
-  test('validates the parsed raw submission body', async () => {
-    await insertDraftCphRecord(server, rawSubmission)
-
-    expect(validateRawSubmission).toHaveBeenCalledWith(body, server)
-  })
-
-  test('throws and stores nothing when validation fails', async () => {
-    validateRawSubmission.mockRejectedValue(new Error('Invalid submission'))
-
-    await expect(insertDraftCphRecord(server, rawSubmission)).rejects.toThrow('Invalid submission')
-
-    expect(await collection.countDocuments({})).toBe(0)
-  })
-
-  test('creates only one record when processed twice', async () => {
-    await insertDraftCphRecord(server, rawSubmission)
-    await insertDraftCphRecord(server, rawSubmission)
-
-    expect(await collection.countDocuments({
-      'source.rawSubmissionId': rawSubmission._id
-    })).toBe(1)
-  })
-
-  test('preserves later changes when processed again', async () => {
-    const filter = {
-      'source.rawSubmissionId': rawSubmission._id
+    const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
+    const server = {
+      db: { collection: vi.fn(() => ({ updateOne })) },
+      log: { error: vi.fn() }
     }
 
     await insertDraftCphRecord(server, rawSubmission)
 
-    await collection.updateOne(filter, {
-      $set: {
-        'livestockInformation.expectedArrivalDate': '2026-10-21'
-      }
-    })
+    expect(validateRawSubmissionMeta).toHaveBeenCalledWith(body, server)
+    expect(validateRawSubmissionBody).toHaveBeenCalledWith(body, server)
+    expect(server.db.collection).toHaveBeenCalledWith('cph-records')
 
-    await insertDraftCphRecord(server, rawSubmission)
-
-    const storedRecord = await collection.findOne(filter)
-    expect(storedRecord.livestockInformation.expectedArrivalDate).toBe('2026-10-21')
+    expect(updateOne).toHaveBeenCalledWith(
+      { 'source.rawSubmissionId': rawSubmission._id },
+      {
+        $setOnInsert: expect.objectContaining({
+          lifecycleStatus: 'Draft',
+          source: expect.objectContaining({
+            rawSubmissionId: rawSubmission._id,
+            receivedAt: rawSubmission.receivedAt,
+            applicationReference: body.meta.referenceNumber,
+            formId: body.meta.formId,
+            formVersion: body.meta.versionMetadata.versionNumber,
+            submittedAt: new Date(body.meta.timestamp)
+          }),
+          createdAt: now,
+          createdBy: actor,
+          modifiedAt: now,
+          modifiedBy: actor,
+          validationErrors: [...metaErrors, ...bodyErrors],
+          livestockInformation: {
+            types: ['Cattle'],
+            expectedArrivalDate: body.data.main.yDwSNa
+          }
+        })
+      },
+      { upsert: true }
+    )
   })
 
-  test('rejects a duplicate raw submission link at database level', async () => {
-    await insertDraftCphRecord(server, rawSubmission)
+  test('adds a parse failure when the raw submission body is invalid JSON', async () => {
+    const invalidRawSubmission = {
+      ...rawSubmission,
+      body: '{not-valid-json'
+    }
 
-    await expect(collection.insertOne({
-      lifecycleStatus: 'Draft',
-      source: {
-        rawSubmissionId: rawSubmission._id
+    const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
+    const server = {
+      db: { collection: vi.fn(() => ({ updateOne })) },
+      log: { error: vi.fn() }
+    }
+
+    await insertDraftCphRecord(server, invalidRawSubmission)
+
+    expect(validationFailureModule.createValidationFailure).toHaveBeenCalledWith(
+      'Failed to parse raw submission body',
+      invalidRawSubmission.body
+    )
+    expect(validateRawSubmissionMeta).toHaveBeenCalledWith({}, server)
+    expect(validateRawSubmissionBody).not.toHaveBeenCalled()
+
+    expect(updateOne).toHaveBeenCalledWith(
+      { 'source.rawSubmissionId': invalidRawSubmission._id },
+      {
+        $setOnInsert: expect.objectContaining({
+          lifecycleStatus: 'Draft',
+          source: expect.objectContaining({
+            rawSubmissionId: invalidRawSubmission._id,
+            receivedAt: invalidRawSubmission.receivedAt,
+            applicationReference: 'Unknown',
+            formId: 'Unknown',
+            formVersion: 'Unknown',
+            submittedAt: now
+          }),
+          validationErrors: [
+            {
+              timestamp: now.toISOString(),
+              failure: 'Failed to parse raw submission body',
+              context: invalidRawSubmission.body
+            }
+          ]
+        })
+      },
+      { upsert: true }
+    )
+  })
+
+  test('uses the current time when the submission timestamp is invalid', async () => {
+    const bodyWithInvalidTimestamp = {
+      ...body,
+      meta: {
+        ...body.meta,
+        timestamp: 'not-a-date'
       }
-    })).rejects.toThrow(/E11000 duplicate key/i)
+    }
+
+    validateRawSubmissionMeta.mockResolvedValue([])
+    validateRawSubmissionBody.mockResolvedValue([])
+
+    const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
+    const server = {
+      db: { collection: vi.fn(() => ({ updateOne })) },
+      log: { error: vi.fn() }
+    }
+
+    await insertDraftCphRecord(server, { ...rawSubmission, body: JSON.stringify(bodyWithInvalidTimestamp) })
+
+    expect(updateOne).toHaveBeenCalledWith(
+      { 'source.rawSubmissionId': rawSubmission._id },
+      {
+        $setOnInsert: expect.objectContaining({
+          source: expect.objectContaining({
+            submittedAt: now
+          })
+        })
+      },
+      { upsert: true }
+    )
+  })
+
+  test('rethrows database insert errors and logs them', async () => {
+    const dbError = new Error('Mongo insert failed')
+    validateRawSubmissionMeta.mockResolvedValue([])
+    validateRawSubmissionBody.mockResolvedValue([])
+
+    const updateOne = vi.fn().mockRejectedValue(dbError)
+    const server = {
+      db: { collection: vi.fn(() => ({ updateOne })) },
+      log: { error: vi.fn() }
+    }
+
+    await expect(insertDraftCphRecord(server, rawSubmission)).rejects.toThrow('Mongo insert failed')
+    expect(server.log.error).toHaveBeenCalledWith('Failed to insert draft CPH record:', dbError)
   })
 })
