@@ -8,7 +8,8 @@ async function createDraftCphRecord (rawSubmission, submissionBody, validationEr
     name: 'CPH Service Backend'
   }
 
-  const parsedSubmittedAt = new Date(submissionBody?.meta?.timestamp)
+  const timestamp = submissionBody?.meta?.timestamp
+  const parsedSubmittedAt = typeof timestamp === 'string' ? new Date(timestamp) : new Date(NaN)
   const submittedAt = Number.isNaN(parsedSubmittedAt.getTime()) ? now : parsedSubmittedAt
 
   const rawMetaValidationErrors = await validateRawSubmissionMeta(submissionBody, server)
