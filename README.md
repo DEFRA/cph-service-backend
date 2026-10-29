@@ -118,6 +118,45 @@ git clone https://github.com/DEFRA/cph-form-test-frontend.git
 
 As long as the code is available in the correct location, it is not necessary to do anything else. The cph-form-test-frontend is built and run from within this projects docker compose configuration.
 
+### Geospatial Data
+
+The parish lookup needs two large files that are not in git (`geospatial-data` is git-ignored). Without them `npm run services:up` fails with a `NoSuchKey` error.
+
+| File | Size | Purpose |
+| --- | --- | --- |
+| `MAFF_Parishes_1998_PseudoCode.geojson` | ~261MB | MAFF parish boundaries, loaded into MongoDB at startup |
+| `OSTN15_NTv2_OSGBtoETRS.gsb` | ~15MB | OSTN15 grid shift file for OSGB36 to WGS84 conversion |
+
+1. Obtain both files. TODO: add the download location or owner for each file.
+2. Place them in `./geospatial-data/` at the project root, keeping the exact file names.
+3. Start the stack with `npm run services:up`. Floci mounts `./geospatial-data` at `/geospatial-data`, and `compose/floci/start.d/10-setup-resources.sh` creates the `cph-geospatial-data` bucket and uploads both files on startup.
+
+If you add or change the files after Floci has started, remove its data volume and restart so the startup script runs again:
+
+```bash
+npm run services:down
+docker volume rm cph-service-backend_floci-data
+npm run services:up
+```
+
+To check the files were loaded:
+
+```bash
+aws s3 ls s3://cph-geospatial-data/ --endpoint-url http://localhost:4566
+```
+
+### Verifying the Parish Lookup
+
+Once the backend logs show the map data has loaded, call the lookup endpoint with an easting and northing (OSGB36):
+
+```bash
+curl "http://localhost:3001/api/countyparish?easting=<EASTING>&northing=<NORTHING>"
+```
+
+Expected result: county `10`, parish `241`. TODO: fill in the easting and northing used during testing, and paste the exact expected JSON response.
+
+For the Test server, repeat the same request against its base URL with the same easting and northing, and confirm the same county and parish are returned.
+
 ### Running the project
 
 The project and all necessary dependencies can be run through docker compose using:
