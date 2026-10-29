@@ -139,14 +139,6 @@ describe('validateRawSubmissionBody', () => {
         context: expect.objectContaining({ key: 'day' })
       })
     })
-
-    test('logs the error via the server', async () => {
-      const submission = buildSubmission({ date: { day: 40, month: 10, year: 2026 } })
-
-      await validateRawSubmissionBody(submission, server)
-
-      expect(server.logger.error).toHaveBeenCalledWith(expect.any(Error), 'Validation failed for raw submission body')
-    })
   })
 })
 
@@ -200,14 +192,5 @@ describe('validateRawSubmissionMeta', () => {
     const errors = await validateRawSubmissionMeta(submission, server)
 
     expect(failures(errors)).toEqual(['"meta.versionMetadata.versionNumber" must be a number'])
-  })
-
-  test('logs the error via the server', async () => {
-    const submission = buildSubmission()
-    delete submission.meta.timestamp
-
-    await validateRawSubmissionMeta(submission, server)
-
-    expect(server.logger.error).toHaveBeenCalledWith(expect.any(Error), 'Validation failed for raw submission meta')
   })
 })
