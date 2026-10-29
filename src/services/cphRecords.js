@@ -1,15 +1,43 @@
-export function mapDraftCphRecord (rawSubmission) {
-  const submission = JSON.parse(rawSubmission.body)
-  const meta = submission.meta
-  const submittedAt = new Date(meta.timestamp)
-  if (
-    typeof meta.timestamp !== 'string' || meta.timestamp.trim() === '' ||
-    Number.isNaN(submittedAt.getTime())
-  ) {
-    throw new Error('Missing or invalid submission timestamp')
+import { validateRawSubmissionBody, validateRawSubmissionMeta } from './cph/validateRawSubmission.js'
+import { createValidationFailure } from '../helpers/validation-failure.js'
+
+async function createDraftCphRecord (rawSubmission, submissionBody, validationErrors, server) {
+  const now = new Date()
+  const actor = {
+    identifier: 'cph-service-backend',
+    name: 'CPH Service Backend'
   }
 
-  const answers = submission.data?.main ?? {}
+  const timestamp = submissionBody?.meta?.timestamp
+  const parsedSubmittedAt = typeof timestamp === 'string' ? new Date(timestamp) : new Date(NaN)
+  const submittedAt = Number.isNaN(parsedSubmittedAt.getTime()) ? now : parsedSubmittedAt
+
+  const rawMetaValidationErrors = await validateRawSubmissionMeta(submissionBody, server)
+  validationErrors.push(...rawMetaValidationErrors)
+
+  return {
+    lifecycleStatus: 'Draft',
+    source: {
+      rawSubmissionId: rawSubmission?._id,
+      receivedAt: rawSubmission?.receivedAt,
+      applicationReference: submissionBody?.meta?.referenceNumber ?? 'Unknown',
+      formId: submissionBody?.meta?.formId ?? 'Unknown',
+      formVersion: submissionBody?.meta?.versionMetadata?.versionNumber ?? 'Unknown',
+      submittedAt,
+    },
+    createdAt: now,
+    createdBy: actor,
+    modifiedAt: now,
+    modifiedBy: actor,
+    validationErrors
+  }
+}
+
+async function mapDraftCphRecord (draft, submissionBody, server) {
+  const rawBodyValidationErrors = await validateRawSubmissionBody(submissionBody, server)
+  draft.validationErrors.push(...rawBodyValidationErrors)
+
+  const answers = submissionBody.data?.main
 
   // Create form answer keys: docs/create-cph-form-field-mapping.md
   const {
@@ -19,47 +47,46 @@ export function mapDraftCphRecord (rawSubmission) {
 
   const livestockInformation = {}
 
-  if (livestockTypes !== undefined) {
-    livestockInformation.types = [...livestockTypes]
-  }
+  livestockInformation.types = Array.isArray(livestockTypes) ? [...livestockTypes] : []
+  livestockInformation.expectedArrivalDate = expectedArrivalDate
 
-  if (expectedArrivalDate !== undefined) {
-    const { day, month, year } = expectedArrivalDate
-    livestockInformation.expectedArrivalDate = `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-  }
   return {
-    lifecycleStatus: 'Draft',
-    source: {
-      rawSubmissionId: rawSubmission._id,
-      applicationReference: meta.referenceNumber,
-      formId: meta.formId,
-      formVersion: meta.versionMetadata?.versionNumber,
-      submittedAt,
-      receivedAt: rawSubmission.receivedAt
-    },
+    ...draft,
     livestockInformation
   }
 }
 
-export function insertDraftCphRecord (db, rawSubmission) {
-  const draft = mapDraftCphRecord(rawSubmission)
-  const now = new Date()
-  const actor = {
-    identifier: 'cph-service-backend',
-    name: 'CPH Service Backend'
+export async function insertDraftCphRecord (server, rawSubmission) {
+  let draftCph = {}
+  let submissionBody = {}
+  const validationErrors = []
+  let failedToParseBody = false
+
+  try {
+    submissionBody = JSON.parse(rawSubmission.body)
+  } catch (error) {
+    failedToParseBody = true
+    validationErrors.push(createValidationFailure('Failed to parse raw submission body', rawSubmission.body))
   }
 
-  return db.collection('cph-records').updateOne(
-    { 'source.rawSubmissionId': rawSubmission._id },
-    {
-      $setOnInsert: {
-        ...draft,
-        createdAt: now,
-        createdBy: actor,
-        modifiedAt: now,
-        modifiedBy: actor
-      }
-    },
-    { upsert: true }
-  )
+  draftCph = await createDraftCphRecord(rawSubmission, submissionBody, validationErrors, server)
+
+  if (!failedToParseBody) {
+    draftCph = await mapDraftCphRecord(draftCph, submissionBody, server)
+  }
+
+  try {
+    await server.db.collection('cph-records').updateOne(
+      { 'source.rawSubmissionId': rawSubmission._id },
+      {
+        $setOnInsert: {
+          ...draftCph
+        }
+      },
+      { upsert: true }
+    )
+  } catch (error) {
+    server.logger.error(error, 'Failed to insert draft CPH record:')
+    throw error
+  }
 }

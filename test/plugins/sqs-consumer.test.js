@@ -1,9 +1,20 @@
 import { DeleteMessageCommand } from '@aws-sdk/client-sqs'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+
 import {
   processMessage,
   buildSqsClientConfig
 } from '../../src/plugins/sqs-consumer.js'
-import { describe, expect, test, vi } from 'vitest'
+import { insertRawFormSubmission } from '../../src/services/rawFormSubmissions.js'
+import { insertDraftCphRecord } from '../../src/services/cphRecords.js'
+
+vi.mock('../../src/services/rawFormSubmissions.js', () => ({
+  insertRawFormSubmission: vi.fn()
+}))
+
+vi.mock('../../src/services/cphRecords.js', () => ({
+  insertDraftCphRecord: vi.fn()
+}))
 
 const queueUrl = 'http://localhost:4566/000000000000/test-queue'
 
@@ -101,14 +112,42 @@ describe('#buildSqsClientConfig', () => {
 })
 
 describe('#processMessage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    insertRawFormSubmission.mockResolvedValue(undefined)
+    insertDraftCphRecord.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
   test('Deletes the SQS message after successful storage', async () => {
     const send = vi.fn().mockResolvedValue({})
     const client = { send }
-    const db = createDb()
-    const logger = createLogger()
+    const server = {
+      db: createDb(),
+      logger: createLogger()
+    }
     const message = createMessage()
 
-    await processMessage(client, queueUrl, db, logger, message)
+    server.db.rawCollection.findOne.mockResolvedValue({
+      _id: 'test-raw-submission-id',
+      receivedAt: new Date('2026-10-08T08:39:38.363Z'),
+      body: message.Body
+    })
+
+    await processMessage(client, queueUrl, server, message)
+
+    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message.Body)
+    expect(server.db.rawCollection.findOne).toHaveBeenCalledWith({
+      referenceNumber: 'TEST-REF-001'
+    })
+    expect(insertDraftCphRecord).toHaveBeenCalledWith(server, {
+      _id: 'test-raw-submission-id',
+      receivedAt: new Date('2026-10-08T08:39:38.363Z'),
+      body: message.Body
+    })
 
     expect(send).toHaveBeenCalledTimes(1)
 
@@ -123,16 +162,21 @@ describe('#processMessage', () => {
 
   test('Does not delete the SQS message when storage fails', async () => {
     const databaseError = new Error('Database unavailable')
-    const updateOne = vi.fn().mockRejectedValue(databaseError)
     const client = { send: vi.fn() }
-    const db = createDb(updateOne)
-    const logger = createLogger()
+    const server = {
+      db: createDb(),
+      logger: createLogger()
+    }
     const message = createMessage()
 
-    await processMessage(client, queueUrl, db, logger, message)
+    insertRawFormSubmission.mockRejectedValue(databaseError)
 
+    await processMessage(client, queueUrl, server, message)
+
+    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message.Body)
+    expect(insertDraftCphRecord).not.toHaveBeenCalled()
     expect(client.send).not.toHaveBeenCalled()
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(server.logger.error).toHaveBeenCalledWith(
       databaseError,
       'Failed to store SQS message test-message-id; message not deleted'
     )
@@ -140,14 +184,18 @@ describe('#processMessage', () => {
 
   test('Does not delete a malformed SQS message', async () => {
     const client = { send: vi.fn() }
-    const db = createDb()
-    const logger = createLogger()
+    const server = {
+      db: createDb(),
+      logger: createLogger()
+    }
     const message = createMessage('{invalid}')
 
-    await processMessage(client, queueUrl, db, logger, message)
+    await processMessage(client, queueUrl, server, message)
 
+    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message.Body)
+    expect(insertDraftCphRecord).not.toHaveBeenCalled()
     expect(client.send).not.toHaveBeenCalled()
-    expect(logger.error).toHaveBeenCalled()
+    expect(server.logger.error).toHaveBeenCalled()
   })
 
   test('Logs an SQS deletion failure after successful storage', async () => {
@@ -155,13 +203,21 @@ describe('#processMessage', () => {
     const client = {
       send: vi.fn().mockRejectedValue(deletionError)
     }
-    const db = createDb()
-    const logger = createLogger()
+    const server = {
+      db: createDb(),
+      logger: createLogger()
+    }
     const message = createMessage()
 
-    await processMessage(client, queueUrl, db, logger, message)
+    server.db.rawCollection.findOne.mockResolvedValue({
+      _id: 'test-raw-submission-id',
+      receivedAt: new Date('2026-10-08T08:39:38.363Z'),
+      body: message.Body
+    })
 
-    expect(logger.error).toHaveBeenCalledWith(
+    await processMessage(client, queueUrl, server, message)
+
+    expect(server.logger.error).toHaveBeenCalledWith(
       deletionError,
       'Failed to delete SQS message test-message-id'
     )
@@ -169,15 +225,17 @@ describe('#processMessage', () => {
 
   test('stores the Draft using the retained raw submission', async () => {
     const client = { send: vi.fn().mockResolvedValue({}) }
-    const db = createDb()
-    const logger = createLogger()
+    const server = {
+      db: createDb(),
+      logger: createLogger()
+    }
 
     const retained = JSON.parse(createBody())
     retained.data.main.vumpmr = ['Cattle']
 
-    db.rawCollection.findOne.mockResolvedValue({
+    server.db.rawCollection.findOne.mockResolvedValue({
       _id: 'test-raw-submission-id',
-      receivedAt: new Date('2026-10-08T08:39:38:363Z'),
+      receivedAt: new Date('2026-10-08T08:39:38.363Z'),
       body: JSON.stringify(retained)
     })
 
@@ -187,27 +245,18 @@ describe('#processMessage', () => {
     await processMessage(
       client,
       queueUrl,
-      db,
-      logger,
+      server,
       createMessage(JSON.stringify(incoming))
     )
 
-    expect(db.rawCollection.findOne).toHaveBeenCalledWith({
+    expect(server.db.rawCollection.findOne).toHaveBeenCalledWith({
       referenceNumber: 'TEST-REF-001'
     })
-
-    expect(db.draftCollection.updateOne).toHaveBeenCalledWith(
-      { 'source.rawSubmissionId': 'test-raw-submission-id' },
-      {
-        $setOnInsert: expect.objectContaining({
-          lifecycleStatus: 'Draft',
-          livestockInformation: {
-            types: ['Cattle']
-          }
-        })
-      },
-      { upsert: true }
-    )
+    expect(insertDraftCphRecord).toHaveBeenCalledWith(server, {
+      _id: 'test-raw-submission-id',
+      receivedAt: new Date('2026-10-08T08:39:38.363Z'),
+      body: JSON.stringify(retained)
+    })
 
     expect(client.send).toHaveBeenCalledTimes(1)
   })
@@ -215,23 +264,30 @@ describe('#processMessage', () => {
   test('does not delete the message when Draft storage fails', async () => {
     const storageError = new Error('Draft storage unavailable')
     const client = { send: vi.fn().mockResolvedValue({}) }
-    const db = createDb()
-    const logger = createLogger()
+    const server = {
+      db: createDb(),
+      logger: createLogger()
+    }
+    const message = createMessage()
 
-    db.draftCollection.updateOne.mockRejectedValue(storageError)
+    server.db.rawCollection.findOne.mockResolvedValue({
+      _id: 'test-raw-submission-id',
+      receivedAt: new Date('2026-10-08T08:39:38.363Z'),
+      body: message.Body
+    })
+    insertDraftCphRecord.mockRejectedValue(storageError)
 
     await processMessage(
       client,
       queueUrl,
-      db,
-      logger,
-      createMessage()
+      server,
+      message
     )
 
-    expect(db.rawCollection.updateOne).toHaveBeenCalledTimes(1)
-    expect(db.draftCollection.updateOne).toHaveBeenCalledTimes(1)
+    expect(insertRawFormSubmission).toHaveBeenCalledTimes(1)
+    expect(insertDraftCphRecord).toHaveBeenCalledTimes(1)
     expect(client.send).not.toHaveBeenCalled()
-    expect(logger.error).toHaveBeenCalledWith(
+    expect(server.logger.error).toHaveBeenCalledWith(
       storageError,
       'Failed to store SQS message test-message-id; message not deleted'
     )
