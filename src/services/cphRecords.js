@@ -78,7 +78,7 @@ export async function insertDraftCphRecord (server, rawSubmission) {
       { upsert: true }
     )
   } catch (error) {
-    server.log.error('Failed to insert draft CPH record:', error)
+    server.logger.error(error, 'Failed to insert draft CPH record:')
     throw error
   }
 }
