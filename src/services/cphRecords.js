@@ -37,17 +37,10 @@ async function mapDraftCphRecord (draft, submissionBody, server) {
   draft.validationErrors.push(...rawBodyValidationErrors)
 
   const answers = submissionBody.data?.main
-
-  // Create form answer keys: docs/create-cph-form-field-mapping.md
-  const {
-    vumpmr: livestockTypes,
-    yDwSNa: expectedArrivalDate
-  } = answers
-
   const livestockInformation = {}
 
-  livestockInformation.types = Array.isArray(livestockTypes) ? [...livestockTypes] : []
-  livestockInformation.expectedArrivalDate = expectedArrivalDate
+  livestockInformation.types = Array.isArray(answers.vumpmr) ? [...answers.vumpmr] : []
+  livestockInformation.expectedArrivalDate = answers.yDwSNa
 
   return {
     ...draft,
