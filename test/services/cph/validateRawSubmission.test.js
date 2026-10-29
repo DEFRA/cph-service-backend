@@ -5,7 +5,12 @@ import {
   validateRawSubmissionMeta
 } from '../../../src/services/cph/validateRawSubmission.js'
 
-const server = { log: vi.fn() }
+const server = {
+  logger: {
+    info: vi.fn(),
+    error: vi.fn()
+  }
+}
 
 const buildSubmission = ({ date, meta, main } = {}) => ({
   meta: {
