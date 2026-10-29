@@ -91,3 +91,22 @@ Illustrative fragment, not yet implmented:
 - Confirm whether embedded locations need stable identifiers for updates.
 - Confirm when location completeness is required during processing.
 - Review embedding against the expected queries and update patterns.
+
+## Proposed party and role structure
+
+Proposal for review: embed a parties array within each CPH record.
+Each party has a partyType and a roles array.
+
+The example combines the LDM's Party and CPH Party in Role concepts into one embedded structure. A party can hold several roles without duplicating its details within the CPH record.
+
+Illustrative fragment, not yet implemented. Role labels follow the LDM; stored values remain subject to agreement.
+
+```JSON
+{
+
+}
+```
+
+This example represents a person only. Organisation details, contacts, addresses and party identifiers will be considered next.
+
+Whether parties should be shared across CPH records thought references remains an open decision.
