@@ -77,7 +77,10 @@ describe('insertDraftCphRecord', () => {
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
     const server = {
       db: { collection: vi.fn(() => ({ updateOne })) },
-      log: { error: vi.fn() }
+      logger: {
+        info: vi.fn(),
+        error: vi.fn()
+      }
     }
 
     await insertDraftCphRecord(server, rawSubmission)
@@ -123,7 +126,10 @@ describe('insertDraftCphRecord', () => {
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
     const server = {
       db: { collection: vi.fn(() => ({ updateOne })) },
-      log: { error: vi.fn() }
+      logger: {
+        info: vi.fn(),
+        error: vi.fn()
+      }
     }
 
     await insertDraftCphRecord(server, invalidRawSubmission)
@@ -176,7 +182,10 @@ describe('insertDraftCphRecord', () => {
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
     const server = {
       db: { collection: vi.fn(() => ({ updateOne })) },
-      log: { error: vi.fn() }
+      logger: {
+        info: vi.fn(),
+        error: vi.fn()
+      }
     }
 
     await insertDraftCphRecord(server, { ...rawSubmission, body: JSON.stringify(bodyWithInvalidTimestamp) })
@@ -202,10 +211,13 @@ describe('insertDraftCphRecord', () => {
     const updateOne = vi.fn().mockRejectedValue(dbError)
     const server = {
       db: { collection: vi.fn(() => ({ updateOne })) },
-      log: { error: vi.fn() }
+      logger: {
+        info: vi.fn(),
+        error: vi.fn()
+      }
     }
 
     await expect(insertDraftCphRecord(server, rawSubmission)).rejects.toThrow('Mongo insert failed')
-    expect(server.log.error).toHaveBeenCalledWith('Failed to insert draft CPH record:', dbError)
+    expect(server.logger.error).toHaveBeenCalledWith(dbError, 'Failed to insert draft CPH record:')
   })
 })
