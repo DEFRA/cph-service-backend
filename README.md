@@ -136,6 +136,11 @@ When the terminal is launched you can see the files by running:
 aws s3 ls s3://dev-geospatial-data-c63f2/geospatial-data/
 here is the documentation https://portal.cdp-int.defra.cloud/documentation/how-to/terminal.md#s3
 
+You can then copy the files using this command 
+aws s3 cp s3://<bucket-name>/<path>/<file-name> 
+Dev Example : aws s3 cp s3://dev-geospatial-data-c63f2/geospatial-data/ MAFF_Parishes_1998_PseudoCode.geojson  MAFF_Parishes_1998_PseudoCode.geojson .
+This downloads the file to your local 
+
 2. Place them in `./geospatial-data/` at the project root, keeping the exact file names.
 3. Start the stack with `npm run services:up`. Floci mounts `./geospatial-data` at `/geospatial-data`, and `compose/floci/start.d/10-setup-resources.sh` creates the `cph-geospatial-data` bucket and uploads both files on startup.
 
