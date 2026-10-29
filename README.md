@@ -127,7 +127,15 @@ The parish lookup needs two large files that are not in git (`geospatial-data` i
 | `MAFF_Parishes_1998_PseudoCode.geojson` | ~261MB | MAFF parish boundaries, loaded into MongoDB at startup |
 | `OSTN15_NTv2_OSGBtoETRS.gsb` | ~15MB | OSTN15 grid shift file for OSGB36 to WGS84 conversion |
 
-1. Obtain both files. TODO: add the download location or owner for each file.
+1. Obtain both files. 
+If you go to the CDP portal:
+Go to the cph-service-backend service
+Click the "Terminal" tab
+Launch a terminal for the DEV environment
+When the terminal is launched you can see the files by running:
+aws s3 ls s3://dev-geospatial-data-c63f2/geospatial-data/
+here is the documentation https://portal.cdp-int.defra.cloud/documentation/how-to/terminal.md#s3
+
 2. Place them in `./geospatial-data/` at the project root, keeping the exact file names.
 3. Start the stack with `npm run services:up`. Floci mounts `./geospatial-data` at `/geospatial-data`, and `compose/floci/start.d/10-setup-resources.sh` creates the `cph-geospatial-data` bucket and uploads both files on startup.
 
