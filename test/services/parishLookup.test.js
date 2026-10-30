@@ -2,6 +2,10 @@ import { findParishesByWgs84 } from '#/services/parishLookup.js'
 import { MAP_DATA_COLLECTION } from '#/services/mapData.js'
 import { osgb36ToWgs84 } from '#/helpers/osgb36.js'
 
+vi.mock('#/services/mapData.js', () => ({
+  MAP_DATA_COLLECTION: 'cph-map-data'
+}))
+
 vi.mock('#/helpers/osgb36.js', () => ({
   osgb36ToWgs84: vi.fn()
 }))

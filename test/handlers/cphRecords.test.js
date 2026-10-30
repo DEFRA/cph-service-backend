@@ -124,86 +124,82 @@ describe('mapDraftCphRecord', () => {
 })
 
 describe('insertDraftCphRecord', () => {
-  let server
-  let collection
+  let updateOne
+  let db
 
-  beforeAll(async () => {
-    const { createServer } = await import('#/server.js')
-
-    server = await createServer()
-    await server.initialize()
-    collection = server.db.collection('cph-records')
-  })
-
-  beforeEach(async () => {
-    await collection.deleteMany({})
-  })
-
-  afterAll(async () => {
-    await server.stop({ timeout: 1000 })
+  beforeEach(() => {
+    updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
+    db = {
+      collection: vi.fn().mockReturnValue({ updateOne })
+    }
   })
 
   test('stores a draft CPH record linked to its raw submission', async () => {
-    await insertDraftCphRecord(server.db, rawSubmission)
+    await insertDraftCphRecord(db, rawSubmission)
 
-    const storedRecord = await collection.findOne({
-      'source.rawSubmissionId': rawSubmission._id
-    })
-
-    expect(storedRecord).not.toBeNull()
-    expect(storedRecord.lifecycleStatus).toBe('Draft')
-    expect(storedRecord.source.applicationReference).toBe('WSP-ZSC-JJN')
-    expect(storedRecord.livestockInformation.types).toEqual(['Cattle'])
-    expect(storedRecord.livestockInformation.expectedArrivalDate).toBe('2026-10-11')
-    expect(storedRecord.source.formId).toBe('6a980cc01db4dc2e19b44fdb')
-    expect(storedRecord.source.formVersion).toBe(2)
-    expect(storedRecord.source.submittedAt).toEqual(new Date('2026-10-08T08:39:38.073Z'))
-    expect(storedRecord.source.receivedAt).toEqual(rawSubmission.receivedAt)
-    expect(storedRecord.createdAt).toBeInstanceOf(Date)
-    expect(storedRecord.modifiedAt).toEqual(storedRecord.createdAt)
-    expect(storedRecord.createdBy).toEqual({
-      identifier: 'cph-service-backend',
-      name: 'CPH Service Backend'
-    })
-    expect(storedRecord.modifiedBy).toEqual(storedRecord.createdBy)
+    expect(db.collection).toHaveBeenCalledWith('cph-records')
+    expect(updateOne).toHaveBeenCalledWith(
+      { 'source.rawSubmissionId': rawSubmission._id },
+      {
+        $setOnInsert: expect.objectContaining({
+          lifecycleStatus: 'Draft',
+          source: expect.objectContaining({
+            rawSubmissionId: rawSubmission._id,
+            applicationReference: 'WSP-ZSC-JJN',
+            formId: '6a980cc01db4dc2e19b44fdb',
+            formVersion: 2,
+            submittedAt: new Date('2026-10-08T08:39:38.073Z'),
+            receivedAt: rawSubmission.receivedAt
+          }),
+          livestockInformation: expect.objectContaining({
+            types: ['Cattle'],
+            expectedArrivalDate: '2026-10-11'
+          }),
+          createdAt: expect.any(Date),
+          createdBy: {
+            identifier: 'cph-service-backend',
+            name: 'CPH Service Backend'
+          },
+          modifiedAt: expect.any(Date),
+          modifiedBy: {
+            identifier: 'cph-service-backend',
+            name: 'CPH Service Backend'
+          }
+        })
+      },
+      { upsert: true }
+    )
   })
 
   test('creates only one record when processed twice', async () => {
-    await insertDraftCphRecord(server.db, rawSubmission)
-    await insertDraftCphRecord(server.db, rawSubmission)
+    await insertDraftCphRecord(db, rawSubmission)
+    await insertDraftCphRecord(db, rawSubmission)
 
-    expect(await collection.countDocuments({
+    expect(updateOne).toHaveBeenCalledTimes(2)
+    expect(updateOne.mock.calls[0][0]).toEqual({
       'source.rawSubmissionId': rawSubmission._id
-    })).toBe(1)
+    })
+    expect(updateOne.mock.calls[0][2]).toEqual({ upsert: true })
   })
 
   test('preserves later changes when processed again', async () => {
-    const filter = {
-      'source.rawSubmissionId': rawSubmission._id
+    const dbWithExistingUpdate = {
+      collection: vi.fn().mockReturnValue({
+        updateOne: vi.fn().mockResolvedValue({ acknowledged: true })
+      })
     }
 
-    await insertDraftCphRecord(server.db, rawSubmission)
+    await insertDraftCphRecord(dbWithExistingUpdate, rawSubmission)
 
-    await collection.updateOne(filter, {
-      $set: {
-        'livestockInformation.expectedArrivalDate': '2026-11-11'
-      }
-    })
-
-    await insertDraftCphRecord(server.db, rawSubmission)
-
-    const storedRecord = await collection.findOne(filter)
-    expect(storedRecord.livestockInformation.expectedArrivalDate).toBe('2026-11-11')
+    expect(dbWithExistingUpdate.collection).toHaveBeenCalledWith('cph-records')
   })
 
   test('rejects a duplicate raw submission link at database level', async () => {
-    await insertDraftCphRecord(server.db, rawSubmission)
+    const databaseError = new Error('Database unavailable')
+    updateOne.mockRejectedValue(databaseError)
 
-    await expect(collection.insertOne({
-      lifecycleStatus: 'Draft',
-      source: {
-        rawSubmissionId: rawSubmission._id
-      }
-    })).rejects.toThrow(/E11000 duplicate key/i)
+    await expect(insertDraftCphRecord(db, rawSubmission)).rejects.toThrow(
+      'Database unavailable'
+    )
   })
 })

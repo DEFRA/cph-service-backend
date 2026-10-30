@@ -8,6 +8,36 @@ import {
   vi
 } from 'vitest'
 
+vi.mock('stream-json', () => ({
+  parser: {
+    asStream: () => ({ pipe: () => ({ pipe: () => ({}) }) })
+  }
+}))
+
+vi.mock('stream-json/filters/pick.js', () => ({
+  pick: {
+    asStream: () => ({ pipe: () => ({}) })
+  }
+}))
+
+vi.mock('stream-json/streamers/stream-array.js', () => ({
+  streamArray: {
+    asStream: () => ({})
+  }
+}))
+
+vi.mock('proj4', () => {
+  const proj4 = Object.assign(
+    vi.fn(() => ({ forward: vi.fn((point) => point) })),
+    {
+      nadgrid: vi.fn(),
+      defs: vi.fn()
+    }
+  )
+
+  return { default: proj4 }
+})
+
 vi.mock('#/plugins/map-data.js', () => ({
   mapData: {
     plugin: {
