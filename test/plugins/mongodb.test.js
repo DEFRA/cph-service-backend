@@ -8,6 +8,36 @@ import {
   vi
 } from 'vitest'
 
+vi.mock('stream-json', () => ({
+  parser: {
+    asStream: () => ({ pipe: () => ({ pipe: () => ({}) }) })
+  }
+}))
+
+vi.mock('stream-json/filters/pick.js', () => ({
+  pick: {
+    asStream: () => ({ pipe: () => ({}) })
+  }
+}))
+
+vi.mock('stream-json/streamers/stream-array.js', () => ({
+  streamArray: {
+    asStream: () => ({})
+  }
+}))
+
+vi.mock('proj4', () => {
+  const proj4 = Object.assign(
+    vi.fn(() => ({ forward: vi.fn((point) => point) })),
+    {
+      nadgrid: vi.fn(),
+      defs: vi.fn()
+    }
+  )
+
+  return { default: proj4 }
+})
+
 vi.mock('#/plugins/map-data.js', () => ({
   mapData: {
     plugin: {
@@ -42,6 +72,28 @@ describe('#mongoDb', () => {
 
     test('MongoDb should have expected namespace', () => {
       expect(server.db.namespace).toBe('cph-service-backend')
+    })
+
+    test('raw-form-submissions should reject duplicate referenceNumber', async () => {
+      const collection = server.db.collection('raw-form-submissions')
+      await collection.insertOne({ referenceNumber: 'DUP-INDEX-TEST' })
+
+      await expect(
+        collection.insertOne({ referenceNumber: 'DUP-INDEX-TEST' })
+      ).rejects.toMatchObject({ code: 11000 })
+
+      await collection.deleteMany({ referenceNumber: 'DUP-INDEX-TEST' })
+    })
+
+    test('cph-records should reject duplicate source.rawSubmissionId', async () => {
+      const collection = server.db.collection('cph-records')
+      await collection.insertOne({ source: { rawSubmissionId: 'DUP-INDEX-TEST' } })
+
+      await expect(
+        collection.insertOne({ source: { rawSubmissionId: 'DUP-INDEX-TEST' } })
+      ).rejects.toMatchObject({ code: 11000 })
+
+      await collection.deleteMany({ 'source.rawSubmissionId': 'DUP-INDEX-TEST' })
     })
   })
 

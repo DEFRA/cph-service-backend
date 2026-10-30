@@ -13,6 +13,75 @@ vi.mock('#/helpers/osgb36.js', () => ({
   convertGeometry: (geometry) => geometry
 }))
 
+vi.mock('stream-json', () => {
+  const { Transform } = require('node:stream')
+
+  return {
+    parser: {
+      asStream: () =>
+        new Transform({
+          objectMode: true,
+          transform (chunk, _encoding, callback) {
+            this._chunks = this._chunks || []
+            this._chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+            callback()
+          },
+          flush (callback) {
+            try {
+              const payload = JSON.parse(
+                Buffer.concat(this._chunks || []).toString()
+              )
+              this.push({ value: payload })
+              callback()
+            } catch (error) {
+              callback(error)
+            }
+          }
+        })
+    }
+  }
+})
+
+vi.mock('stream-json/filters/pick.js', () => {
+  const { Transform } = require('node:stream')
+
+  return {
+    pick: {
+      asStream: ({ filter }) =>
+        new Transform({
+          objectMode: true,
+          transform (chunk, _encoding, callback) {
+            const payload = chunk?.value ?? chunk
+            const items = filter === 'features' ? payload.features ?? [] : payload
+
+            for (const item of Array.isArray(items) ? items : [items]) {
+              this.push({ value: item })
+            }
+
+            callback()
+          }
+        })
+    }
+  }
+})
+
+vi.mock('stream-json/streamers/stream-array.js', () => {
+  const { Transform } = require('node:stream')
+
+  return {
+    streamArray: {
+      asStream: () =>
+        new Transform({
+          objectMode: true,
+          transform (chunk, _encoding, callback) {
+            this.push(chunk)
+            callback()
+          }
+        })
+    }
+  }
+})
+
 const polygon = (...rings) => ({ type: 'Polygon', coordinates: rings })
 
 const feature = (id, geometry, properties = {}) => ({
