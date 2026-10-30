@@ -141,10 +141,9 @@ aws s3 cp s3://<bucket-name>/<path>/<file-name>
 There are 2 files that need downaloading
 1. MAFF_Parishes_1998_PseudoCode.geojson
 2. OSTN15_NTv2_OSGBtoETRS.gsb 
-This command below downloads the file to your local 
+These files can be downloaded from Paul's sharepoint link https://defra-my.sharepoint.com/shared?listurl=https%3A%2F%2Fdefra%2Dmy%2Esharepoint%2Ecom%2Fpersonal%2Fpaul%5Fandrews%5Fdefra%5Fgov%5Fuk%2FDocuments&e=5%3A37172f5a577143858d267e3d029983b2&sharingv2=true&fromShare=true&at=9&clickparams=eyAiWC1BcHBOYW1lIiA6ICJNaWNyb3NvZnQgT3V0bG9vayIsICJYLUFwcFZlcnNpb24iIDogIjE2LjAuMjA1MjcuMjAwODgiLCAiT1MiIDogIldpbmRvd3MiIH0%3D&cidOR=SPO&id=%2Fpersonal%2Fpaul%5Fandrews%5Fdefra%5Fgov%5Fuk%2FDocuments%2FCPH%2Fgeospatial%2Ddata&FolderCTID=0x01200066A4F01AA03B2F4A8D508527E0DDA51E 
 
-aws s3 cp s3://dev-geospatial-data-c63f2/geospatial-data/ MAFF_Parishes_1998_PseudoCode.geojson  MAFF_Parishes_1998_PseudoCode.geojson .
-aws s3 cp s3://dev-geospatial-data-c63f2/geospatial-data/ OSTN15_NTv2_OSGBtoETRS.gsb  OSTN15_NTv2_OSGBtoETRS.gsb .
+OR can be dwonloaded from S3 bucket on CDP
 
 2. Place them in `./geospatial-data/` at the project root, keeping the exact file names.
 3. Start the stack with `npm run services:up`. Floci mounts `./geospatial-data` at `/geospatial-data`, and `compose/floci/start.d/10-setup-resources.sh` creates the `cph-geospatial-data` bucket and uploads both files on startup.
