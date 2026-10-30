@@ -140,6 +140,32 @@ export const config = convict({
       default: 'x-cdp-request-id',
       env: 'TRACING_HEADER'
     }
+  },
+  mapData: {
+    bucket: {
+      doc: 'S3 bucket holding the geospatial data files',
+      format: String,
+      default: 'cph-geospatial-data',
+      env: 'MAP_DATA_S3_BUCKET'
+    },
+    awsRegion: {
+      doc: 'AWS region of the geospatial data bucket',
+      format: String,
+      default: 'eu-west-2',
+      env: 'AWS_REGION'
+    },
+    geoJsonKey: {
+      doc: 'S3 key of the MAFF parishes GeoJSON loaded at startup',
+      format: String,
+      default: 'MAFF_Parishes_1998_PseudoCode.geojson',
+      env: 'MAP_DATA_GEOJSON_KEY'
+    },
+    ostn15Key: {
+      doc: 'S3 key of the OSTN15 NTv2 grid shift file used for OSGB36 to WGS84 conversion',
+      format: String,
+      default: 'OSTN15_NTv2_OSGBtoETRS.gsb',
+      env: 'MAP_DATA_OSTN15_KEY'
+    }
   }
 })
 

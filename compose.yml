@@ -5,6 +5,7 @@ services:
       - '4566:4566'
     volumes:
       - ./compose/floci/start.d:/etc/floci/init/start.d:ro
+      - ./geospatial-data:/geospatial-data:ro
       - floci-data:/app/data
     environment:
       FLOCI_HOSTNAME: floci

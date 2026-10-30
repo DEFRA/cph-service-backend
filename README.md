@@ -118,6 +118,62 @@ git clone https://github.com/DEFRA/cph-form-test-frontend.git
 
 As long as the code is available in the correct location, it is not necessary to do anything else. The cph-form-test-frontend is built and run from within this projects docker compose configuration.
 
+### Geospatial Data
+
+The parish lookup needs two large files that are not in git (`geospatial-data` is git-ignored). Without them `npm run services:up` fails with a `NoSuchKey` error.
+
+| File | Size | Purpose |
+| --- | --- | --- |
+| `MAFF_Parishes_1998_PseudoCode.geojson` | ~261MB | MAFF parish boundaries, loaded into MongoDB at startup |
+| `OSTN15_NTv2_OSGBtoETRS.gsb` | ~15MB | OSTN15 grid shift file for OSGB36 to WGS84 conversion |
+
+1. Obtain both files. 
+If you go to the CDP portal:
+Go to the cph-service-backend service
+Click the "Terminal" tab
+Launch a terminal for the DEV environment
+When the terminal is launched you can see the files by running:
+aws s3 ls s3://dev-geospatial-data-c63f2/geospatial-data/
+here is the documentation https://portal.cdp-int.defra.cloud/documentation/how-to/terminal.md#s3
+
+You can then copy the files using this command 
+aws s3 cp s3://<bucket-name>/<path>/<file-name> 
+There are 2 files that need downaloading
+1. MAFF_Parishes_1998_PseudoCode.geojson
+2. OSTN15_NTv2_OSGBtoETRS.gsb 
+These files can be downloaded from Paul's sharepoint link https://defra-my.sharepoint.com/shared?listurl=https%3A%2F%2Fdefra%2Dmy%2Esharepoint%2Ecom%2Fpersonal%2Fpaul%5Fandrews%5Fdefra%5Fgov%5Fuk%2FDocuments&e=5%3A37172f5a577143858d267e3d029983b2&sharingv2=true&fromShare=true&at=9&clickparams=eyAiWC1BcHBOYW1lIiA6ICJNaWNyb3NvZnQgT3V0bG9vayIsICJYLUFwcFZlcnNpb24iIDogIjE2LjAuMjA1MjcuMjAwODgiLCAiT1MiIDogIldpbmRvd3MiIH0%3D&cidOR=SPO&id=%2Fpersonal%2Fpaul%5Fandrews%5Fdefra%5Fgov%5Fuk%2FDocuments%2FCPH%2Fgeospatial%2Ddata&FolderCTID=0x01200066A4F01AA03B2F4A8D508527E0DDA51E 
+
+OR can be dwonloaded from S3 bucket on CDP
+
+2. Place them in `./geospatial-data/` at the project root, keeping the exact file names.
+3. Start the stack with `npm run services:up`. Floci mounts `./geospatial-data` at `/geospatial-data`, and `compose/floci/start.d/10-setup-resources.sh` creates the `cph-geospatial-data` bucket and uploads both files on startup.
+
+If you add or change the files after Floci has started, remove its data volume and restart so the startup script runs again:
+
+```bash
+npm run services:down
+docker volume rm cph-service-backend_floci-data
+npm run services:up
+```
+
+To check the files were loaded:
+
+```bash
+aws s3 ls s3://cph-geospatial-data/ --endpoint-url http://localhost:4566
+```
+
+### Verifying the Parish Lookup
+
+Once the backend logs show the map data has loaded, call the lookup endpoint with an easting and northing (OSGB36):
+
+```bash
+curl "http://localhost:3001/api/countyparish?easting=<EASTING>&northing=<NORTHING>"
+```
+
+Expected result: county `10`, parish `241`. TODO: fill in the easting and northing used during testing, and paste the exact expected JSON response.
+
+For the Test server, repeat the same request against its base URL with the same easting and northing, and confirm the same county and parish are returned.
+
 ### Running the project
 
 The project and all necessary dependencies can be run through docker compose using:
