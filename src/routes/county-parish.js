@@ -1,6 +1,5 @@
 import Joi from 'joi'
-
-import { findParishesByWgs84 } from '../../services/parishLookup.js'
+import { findCountyParish } from '../handlers/county-parish/find.js'
 
 export const countyParish = [
   {
@@ -14,11 +13,6 @@ export const countyParish = [
         })
       }
     },
-    handler: async (request, h) => {
-      const { easting, northing } = request.query
-      const parishes = await findParishesByWgs84(request.db, easting, northing)
-
-      return h.response({ parishes })
-    }
+    handler: findCountyParish
   }
 ]
