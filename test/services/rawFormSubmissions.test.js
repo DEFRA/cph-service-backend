@@ -1,6 +1,16 @@
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest'
 import { insertRawFormSubmission } from '../../src/services/rawFormSubmissions.js'
 
+vi.mock('#/plugins/map-data.js', () => ({
+  mapData: {
+    plugin: {
+      name: 'map-data',
+      version: '1.0.0',
+      register: async () => {}
+    }
+  }
+}))
+
 const collectionName = 'raw-form-submissions'
 const referenceNumber = 'TEST-REF-001'
 const formId = 'test-form-id'
@@ -37,7 +47,7 @@ describe('#insertRawFormSubmission', () => {
   })
 
   afterAll(async () => {
-    await server.stop({ timeout: 1000 })
+    await server?.stop({ timeout: 1000 })
   })
 
   test('Stores the complete original body', async () => {
