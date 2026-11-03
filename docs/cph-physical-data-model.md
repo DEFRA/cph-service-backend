@@ -103,10 +103,28 @@ Illustrative fragment, not yet implemented. Role labels follow the LDM; stored v
 
 ```JSON
 {
-
+    "parties": [
+        {
+        "partyType": "Person",
+        "firstName": "Alex",
+        "lastName": "Example",
+        "roles": [
+                "CPH Holder",
+                "Primary Contact Person"
+            ]
+        }
+    ]
 }
 ```
 
 This example represents a person only. Organisation details, contacts, addresses and party identifiers will be considered next.
 
 Whether parties should be shared across CPH records thought references remains an open decision.
+
+## XSD source checks
+
+The supplied export defines Actor with one Identifier and one Name (lines 13 and 18). The existing embedded actor structure represents these as identifier and name.
+
+Identifier is referenced as a custom type. Copilot's static inspection reports no corresponding type defintion; this remains an export question for confirmation. No XSD validator has been run.
+
+The export informs this design but does not determine MongoDB storage types or Draft-stage validation requirements.
