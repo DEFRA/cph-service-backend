@@ -1,21 +1,21 @@
-import { mapData } from '#/plugins/map-data.js'
-import { isMapDataLoaded, loadMapData } from '#/services/mapData.js'
-import { initOsgb36ToWgs84 } from '#/helpers/osgb36.js'
+import { mapData } from '../../../src/plugins/cph-map-data/index.js'
+import { isMapDataLoaded, loadMapData } from '../../../src/plugins/cph-map-data/helpers/mapData.js'
+import { initOsgb36ToWgs84 } from '../../../src/plugins/cph-map-data/helpers/osgb36.js'
 
 const gridBuffer = Buffer.from('grid')
 const geoJsonStream = { stream: true }
 
-vi.mock('#/helpers/s3.js', () => ({
+vi.mock('../../../src/plugins/cph-map-data/helpers/s3.js', () => ({
   createS3Client: vi.fn(() => 's3'),
   getObjectBuffer: vi.fn(async () => gridBuffer),
   getObjectStream: vi.fn(async () => geoJsonStream)
 }))
 
-vi.mock('#/services/mapData.js', () => ({
+vi.mock('../../../src/plugins/cph-map-data/helpers/mapData.js', () => ({
   isMapDataLoaded: vi.fn(),
   loadMapData: vi.fn()
 }))
-vi.mock('#/helpers/osgb36.js', () => ({
+vi.mock('../../../src/plugins/cph-map-data/helpers/osgb36.js', () => ({
   initOsgb36ToWgs84: vi.fn()
 }))
 
@@ -39,6 +39,7 @@ describe('#mapData plugin', () => {
     lock = { free: vi.fn().mockResolvedValue() }
     server = {
       db: {},
+      route: vi.fn(),
       logger: { info: vi.fn(), error: vi.fn() },
       locker: { lock: vi.fn().mockResolvedValue(lock) },
       events: {

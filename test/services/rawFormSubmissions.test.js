@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest'
 import { insertRawFormSubmission } from '../../src/services/rawFormSubmissions.js'
 
-vi.mock('#/plugins/map-data.js', () => ({
+vi.mock('#/plugins/cph-map-data/index.js', () => ({
   mapData: {
     plugin: {
       name: 'map-data',

@@ -1,16 +1,18 @@
-import { isMapDataLoaded, loadMapData } from '#/services/mapData.js'
-import { initOsgb36ToWgs84 } from '#/helpers/osgb36.js'
+import { isMapDataLoaded, loadMapData } from './helpers/mapData.js'
+import { initOsgb36ToWgs84 } from './helpers/osgb36.js'
 import {
   createS3Client,
   getObjectBuffer,
   getObjectStream
-} from '#/helpers/s3.js'
+} from './helpers/s3.js'
+import { countyParish as routes } from './routes/index.js'
 
 export const mapData = {
   plugin: {
     name: 'map-data',
     version: '1.0.0',
     register: async function (server, options) {
+      server.route(routes)
       // Needed by the lookup routes too, so it cannot live inside the load path.
       const s3 = createS3Client(options.awsRegion)
       initOsgb36ToWgs84(
