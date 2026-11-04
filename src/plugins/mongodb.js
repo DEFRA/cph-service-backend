@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb'
 import { LockManager } from 'mongo-locks'
 
-import { MAP_DATA_COLLECTION } from '#/services/mapData.js'
+import { MAP_DATA_COLLECTION } from './cph-map-data/helpers/mapData.js'
 
 export const mongoDb = {
   plugin: {

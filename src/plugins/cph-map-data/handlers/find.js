@@ -1,5 +1,5 @@
 import Boom from '@hapi/boom'
-import { findParishesByWgs84 } from '../../services/parishLookup.js'
+import { findParishesByWgs84 } from '../helpers/parishLookup.js'
 
 export async function findCountyParish (request, h) {
   try {
