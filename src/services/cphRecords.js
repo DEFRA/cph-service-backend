@@ -42,7 +42,9 @@ async function mapDraftCphRecord (draft, submissionBody, server) {
   // Create form answer keys: docs/create-cph-form-field-mapping.md
   const {
     vumpmr: livestockTypes,
-    yDwSNa: expectedArrivalDate
+    yDwSNa: expectedArrivalDate,
+    rOgnUv: landOwned,
+    UOmNur: locationOneEastingNorthing
   } = answers
 
   const livestockInformation = {}
