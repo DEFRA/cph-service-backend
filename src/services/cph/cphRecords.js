@@ -1,5 +1,7 @@
-import { validateRawSubmissionBody, validateRawSubmissionMeta } from './cph/validateRawSubmission.js'
-import { createValidationFailure } from '../helpers/validation-failure.js'
+import { validateRawSubmissionMeta } from './validateRawSubmission.js'
+import { createValidationFailure } from '../../helpers/validation-failure.js'
+import { processCphRecord } from './process-cph.js'
+import { mapDraftCphRecord } from './cph-mapping.js'
 
 async function createDraftCphRecord (rawSubmission, submissionBody, validationErrors, server) {
   const now = new Date()
@@ -33,31 +35,6 @@ async function createDraftCphRecord (rawSubmission, submissionBody, validationEr
   }
 }
 
-async function mapDraftCphRecord (draft, submissionBody, server) {
-  const rawBodyValidationErrors = await validateRawSubmissionBody(submissionBody, server)
-  draft.validationErrors.push(...rawBodyValidationErrors)
-
-  const answers = submissionBody.data?.main
-
-  // Create form answer keys: docs/create-cph-form-field-mapping.md
-  const {
-    vumpmr: livestockTypes,
-    yDwSNa: expectedArrivalDate,
-    rOgnUv: landOwned,
-    UOmNur: locationOneEastingNorthing
-  } = answers
-
-  const livestockInformation = {}
-
-  livestockInformation.types = Array.isArray(livestockTypes) ? [...livestockTypes] : []
-  livestockInformation.expectedArrivalDate = expectedArrivalDate
-
-  return {
-    ...draft,
-    livestockInformation
-  }
-}
-
 export async function insertDraftCphRecord (server, rawSubmission) {
   let draftCph = {}
   let submissionBody = {}
@@ -75,6 +52,7 @@ export async function insertDraftCphRecord (server, rawSubmission) {
 
   if (!failedToParseBody) {
     draftCph = await mapDraftCphRecord(draftCph, submissionBody, server)
+    draftCph = await processCphRecord(server, draftCph)
   }
 
   try {
