@@ -38,8 +38,18 @@ const rawBodySchema = Joi.object({
     main: Joi.object({
       yDwSNa: dateParts.required(), // What date will the livestock arrive?
       vumpmr: Joi.array().min(1).items(Joi.string()).required(), // What livestock will you keep?
-      rOgnUv: Joi.string().required() // Do you own the land?
-      UOmNur: Joi.string().required() // What's the easting and northing for the area where you'll keep livestock?
+      rOgnUv: Joi.boolean().required(), // Do you own the land?
+      repeaters: Joi.object({
+        hNCJCl: Joi.array().items( // Eastings and northings for the area where you'll keep livestock
+          Joi.object({
+            UOmNur: Joi.object({
+              easting: Joi.number().required(),
+              northing: Joi.number().required()
+            }).required()
+          }).required()
+        ).required()
+      }).required(), // Repeaters section
+      UOmNur: Joi.string().required()
     }).required().unknown(true)
   }).required().unknown(true)
 }).unknown(true)
