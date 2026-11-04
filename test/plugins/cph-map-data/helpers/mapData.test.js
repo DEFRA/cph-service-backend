@@ -6,10 +6,10 @@ import {
   isMapDataLoaded,
   loadMapData,
   MAP_DATA_STATUS_COLLECTION
-} from '#/services/mapData.js'
+} from '../../../../src/plugins/cph-map-data/helpers/mapData.js'
 
 // Identity conversion keeps the repaired OSGB36 coordinates easy to assert on.
-vi.mock('#/helpers/osgb36.js', () => ({
+vi.mock('../../../../src/plugins/cph-map-data/helpers/osgb36.js', () => ({
   convertGeometry: (geometry) => geometry
 }))
 

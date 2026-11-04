@@ -18,7 +18,7 @@ import {
 // indicator and land ownership; country and hobbyist classification; additional
 // information; and cattle details (count, purpose, ear tags, movement dates, vet info)
 
-vi.mock('#/plugins/map-data.js', () => ({
+vi.mock('#/plugins/cph-map-data/index.js', () => ({
   mapData: {
     plugin: {
       name: 'map-data',

@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { findCountyParish } from '../handlers/county-parish/find.js'
+import { findCountyParish } from '../handlers/find.js'
 
 export const countyParish = [
   {

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
-import { findCountyParish } from '../../../src/handlers/county-parish/find.js'
-import { findParishesByWgs84 } from '../../../src/services/parishLookup.js'
+import { findCountyParish } from '../../../../src/plugins/cph-map-data/handlers/find.js'
+import { findParishesByWgs84 } from '../../../../src/plugins/cph-map-data/helpers/parishLookup.js'
 
-vi.mock('../../../src/services/parishLookup.js', () => ({
+vi.mock('../../../../src/plugins/cph-map-data/helpers/parishLookup.js', () => ({
   findParishesByWgs84: vi.fn()
 }))
 
