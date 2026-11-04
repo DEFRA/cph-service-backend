@@ -1,6 +1,6 @@
 const collectionName = 'raw-form-submissions'
 
-export function insertRawFormSubmission (db, body) {
+export function insertRawFormSubmission (server, body) {
   const submission = JSON.parse(body)
   const referenceNumber = submission?.meta?.referenceNumber
 
@@ -8,7 +8,7 @@ export function insertRawFormSubmission (db, body) {
     throw new Error('Form submission is missing meta.referenceNumber')
   }
 
-  return db.collection(collectionName).updateOne(
+  return server.db.collection(collectionName).updateOne(
     { referenceNumber },
     {
       $setOnInsert: {
