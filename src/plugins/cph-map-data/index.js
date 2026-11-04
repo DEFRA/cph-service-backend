@@ -12,7 +12,7 @@ export const mapData = {
     name: 'map-data',
     version: '1.0.0',
     register: async function (server, options) {
-        server.route(routes)
+      server.route(routes)
       // Needed by the lookup routes too, so it cannot live inside the load path.
       const s3 = createS3Client(options.awsRegion)
       initOsgb36ToWgs84(
