@@ -51,8 +51,7 @@ export const consumer = {
       const pollPromise = pollQueue(
         client,
         queueUrl,
-        server.db,
-        server.logger,
+        server,
         () => polling
       )
 
@@ -66,7 +65,7 @@ export const consumer = {
   }
 }
 
-async function pollQueue (client, queueUrl, db, logger, isPolling) {
+async function pollQueue (client, queueUrl, server, isPolling) {
   while (isPolling()) {
     const { Messages } = await client.send(
       new ReceiveMessageCommand({
@@ -77,11 +76,11 @@ async function pollQueue (client, queueUrl, db, logger, isPolling) {
     )
 
     if (Messages?.length > 0) {
-      logger.info(`Received ${Messages?.length ?? 0} messages from SQS`)
+      server.logger.info(`Received ${Messages?.length ?? 0} messages from SQS`)
     }
 
     for (const message of Messages ?? []) {
-      await processMessage(client, queueUrl, db, logger, message)
+      await processMessage(client, queueUrl, server, message)
     }
   }
 }
@@ -89,14 +88,13 @@ async function pollQueue (client, queueUrl, db, logger, isPolling) {
 export async function processMessage (
   client,
   queueUrl,
-  db,
-  logger,
+  server,
   message
 ) {
   try {
-    await insertRawFormSubmission(db, message.Body)
+    await insertRawFormSubmission(server, message.Body)
     const submission = JSON.parse(message.Body)
-    const rawSubmission = await db.collection('raw-form-submissions')
+    const rawSubmission = await server.db.collection('raw-form-submissions')
       .findOne({
         referenceNumber: submission.meta.referenceNumber
       })
@@ -105,16 +103,16 @@ export async function processMessage (
       throw new Error('Stored raw submission not found')
     }
 
-    await insertDraftCphRecord(db, rawSubmission)
+    await insertDraftCphRecord(server, rawSubmission)
   } catch (error) {
-    logger.error(
+    server.logger.error(
       error,
       `Failed to store SQS message ${message.MessageId}; message not deleted`
     )
     return
   }
 
-  logger.info(`Stored SQS message ${message.MessageId} `)
+  server.logger.info(`Stored SQS message ${message.MessageId} `)
 
   try {
     await client.send(
@@ -124,7 +122,7 @@ export async function processMessage (
       })
     )
   } catch (error) {
-    logger.error(
+    server.logger.error(
       error,
       `Failed to delete SQS message ${message.MessageId}`
     )
