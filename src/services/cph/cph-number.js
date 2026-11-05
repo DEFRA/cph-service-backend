@@ -31,7 +31,7 @@ export async function generateCphNumber (server, easting, northing, holdingType)
 
     return cphNumber
   } catch (error) {
-    console.error('Failed to generate CPH number:', error)
+    server.logger.error('Failed to generate CPH number:', error)
     throw error
   }
 }

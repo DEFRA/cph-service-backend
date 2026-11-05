@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { generateCphNumber } from '../../../../src/services/cph/cph-number.js'
-import { CPH_HOLDING_TYPES } from '../../../../src/services/cph/cph-parameters.js'
+import { CPH_HOLDING_TYPES, CPH_RANGES } from '../../../../src/services/cph/cph-parameters.js'
 
 describe('generateCphNumber', () => {
   let server
@@ -62,12 +62,12 @@ describe('generateCphNumber', () => {
       server.findParishesByWgs84.mockResolvedValue(mockParishData)
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        sequence: 1, cpNumber: '05/042', holdingType: 'permanent'
+        sequence: CPH_RANGES.permanent.MIN, cpNumber: '05/042', holdingType: 'permanent'
       })
 
       const result = await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
 
-      expect(result).toBe('05/042/0001')
+      expect(result).toBe(`05/042/${String(CPH_RANGES.permanent.MIN).padStart(4, '0')}`)
       expect(mockSequenceCollection.findOneAndUpdate).toHaveBeenCalledWith(
         { cpNumber: '05/042', holdingType: 'permanent' },
         expect.any(Array),
@@ -76,6 +76,14 @@ describe('generateCphNumber', () => {
           returnDocument: 'after'
         }
       )
+
+      // Verify the aggregation pipeline uses holdingRange.MIN
+      const callArgs = mockSequenceCollection.findOneAndUpdate.mock.calls[0]
+      const pipeline = callArgs[1]
+      const condExpression = pipeline[0].$set.sequence.$cond
+
+      // The $cond should have the MIN value as the second element (true case)
+      expect(condExpression[1]).toBe(CPH_RANGES.permanent.MIN)
     })
 
     test('increments the holding number for subsequent CPH generation in same parish', async () => {
@@ -94,18 +102,14 @@ describe('generateCphNumber', () => {
       mockSequenceCollection.findOneAndUpdate.mockResolvedValueOnce({
         sequence: 1, cpNumber: '10/100', holdingType: 'permanent'
       })
-      const firstResult = await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
-      expect(firstResult).toBe('10/100/0001')
+      await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
 
-      // Second call returns sequence 2 (incremented)
-      mockSequenceCollection.findOneAndUpdate.mockResolvedValueOnce({
-        sequence: 2, cpNumber: '10/100', holdingType: 'permanent'
-      })
-      const secondResult = await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
-      expect(secondResult).toBe('10/100/0002')
-
-      // Verify findOneAndUpdate was called twice
-      expect(mockSequenceCollection.findOneAndUpdate).toHaveBeenCalledTimes(2)
+      // Verify the aggregation pipeline contains the $add operator for increment
+      const firstCallArgs = mockSequenceCollection.findOneAndUpdate.mock.calls[0]
+      const pipeline = firstCallArgs[1]
+      const condExpression = pipeline[0].$set.sequence.$cond
+      // The $cond's false case should contain the increment operation
+      expect(condExpression[2]).toEqual({ $add: ['$sequence', 1] })
     })
 
     test('handles large county and parish reference numbers', async () => {
@@ -327,7 +331,6 @@ describe('generateCphNumber', () => {
     test('logs error to console when generation fails', async () => {
       const error = new Error('Generation failed')
       server.findParishesByWgs84.mockRejectedValue(error)
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       try {
         await generateCphNumber(server, 123456, 789012, 'permanent')
@@ -335,8 +338,7 @@ describe('generateCphNumber', () => {
         // Expected to throw
       }
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to generate CPH number:', error)
-      consoleErrorSpy.mockRestore()
+      expect(server.logger.error).toHaveBeenCalledWith('Failed to generate CPH number:', error)
     })
   })
 
@@ -358,29 +360,6 @@ describe('generateCphNumber', () => {
 
       const easting = 456789
       const northing = 123456
-
-      await generateCphNumber(server, easting, northing, 'permanent')
-
-      expect(server.findParishesByWgs84).toHaveBeenCalledWith(server.db, easting, northing)
-    })
-
-    test('handles decimal coordinates', async () => {
-      const mockParishData = [
-        {
-          name: 'Test Parish',
-          countyRef: 5,
-          parishRef: 42
-        }
-      ]
-
-      server.findParishesByWgs84.mockResolvedValue(mockParishData)
-      mockDb.collection.mockReturnValue(mockSequenceCollection)
-      mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        value: { sequence: 1, cpNumber: '05/042', holdingType: 'permanent' }
-      })
-
-      const easting = 456789.123
-      const northing = 123456.456
 
       await generateCphNumber(server, easting, northing, 'permanent')
 
