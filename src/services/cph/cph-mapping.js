@@ -1,5 +1,5 @@
 import { validateRawSubmissionBody } from './validateRawSubmission.js'
-import { CPH_STATUS } from './cph-status.js'
+import { CPH_STATUS } from './cph-parameters.js'
 
 export function mapLocations (locationEastingsAndNorthings) {
   const mappedLocations = locationEastingsAndNorthings.map(item => {

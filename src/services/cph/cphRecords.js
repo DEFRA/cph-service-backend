@@ -2,7 +2,7 @@ import { validateRawSubmissionMeta } from './validateRawSubmission.js'
 import { createValidationFailure } from '../../helpers/validation-failure.js'
 import { processCphRecord } from './process-cph.js'
 import { mapDraftCphRecord } from './cph-mapping.js'
-import { CPH_STATUS } from './cph-status.js'
+import { CPH_STATUS } from './cph-parameters.js'
 
 async function createDraftCphRecord (rawSubmission, submissionBody, validationErrors, server) {
   const now = new Date()
@@ -19,6 +19,7 @@ async function createDraftCphRecord (rawSubmission, submissionBody, validationEr
   validationErrors.push(...rawMetaValidationErrors)
 
   return {
+    cphNumber: '',
     lifecycleStatus: CPH_STATUS.DRAFT,
     source: {
       rawSubmissionId: rawSubmission?._id,

@@ -48,7 +48,7 @@ const formMetaData = {
         postcode: 'PO1 2CO',
       },
       BToHwu: true,
-      rOgnUv: 'true',
+      rOgnUv: true,
       yQiBlu: false,
       ledUEN: false,
       qIhSXZ: false,
