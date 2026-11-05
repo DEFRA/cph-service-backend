@@ -77,7 +77,7 @@ describe('insertDraftCphRecord', () => {
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
     const findOneAndUpdate = vi.fn().mockResolvedValue({ sequence: 1 })
     const server = {
-      db: { 
+      db: {
         collection: vi.fn((name) => {
           if (name === 'cph-sequences') {
             return { findOneAndUpdate }
@@ -146,7 +146,7 @@ describe('insertDraftCphRecord', () => {
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
     const findOneAndUpdate = vi.fn().mockResolvedValue({ sequence: 1 })
     const server = {
-      db: { 
+      db: {
         collection: vi.fn((name) => {
           if (name === 'cph-sequences') {
             return { findOneAndUpdate }
