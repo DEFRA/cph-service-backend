@@ -1,20 +1,13 @@
 import { generateCphNumber } from './cph-number.js'
-import { createValidationFailure } from '../../helpers/validation-failure.js'
+import { CPH_STATUS } from './cph-status.js'
 
 export async function processCphRecord (server, draftCph) {
-  try {
-    const { landOwned } = draftCph.livestockInformation
+  const { landOwned } = draftCph.livestockInformation
 
-    if (landOwned) {
-      return await permanentCphWorkflow(server, draftCph)
-    }
-    return draftCph
-  } catch (error) {
-    server.logger.error(error, 'Failed to process CPH record:')
-    draftCph.validationFailures.push(createValidationFailure('Failed to process CPH record:', error))
-    draftCph.lifecycleStatus = 'Manual Review'
-    throw error
+  if (landOwned) {
+    return await permanentCphWorkflow(server, draftCph)
   }
+  return draftCph
 }
 
 async function permanentCphWorkflow (server, draftCph) {
@@ -24,7 +17,7 @@ async function permanentCphWorkflow (server, draftCph) {
     const { easting: locationOneEasting, northing: locationOneNorthing } = locationEastingsAndNorthings[0]
 
     draftCph.cphNumber = await generateCphNumber(server, locationOneEasting, locationOneNorthing)
-    draftCph.lifecycleStatus = 'Active'
+    draftCph.lifecycleStatus = CPH_STATUS.ACTIVE
     draftCph.startDate = new Date().toISOString()
 
     return draftCph

@@ -2,6 +2,7 @@ import { validateRawSubmissionMeta } from './validateRawSubmission.js'
 import { createValidationFailure } from '../../helpers/validation-failure.js'
 import { processCphRecord } from './process-cph.js'
 import { mapDraftCphRecord } from './cph-mapping.js'
+import { CPH_STATUS } from './cph-status.js'
 
 async function createDraftCphRecord (rawSubmission, submissionBody, validationErrors, server) {
   const now = new Date()
@@ -18,7 +19,7 @@ async function createDraftCphRecord (rawSubmission, submissionBody, validationEr
   validationErrors.push(...rawMetaValidationErrors)
 
   return {
-    lifecycleStatus: 'Draft',
+    lifecycleStatus: CPH_STATUS.DRAFT,
     source: {
       rawSubmissionId: rawSubmission?._id,
       receivedAt: rawSubmission?.receivedAt,
@@ -52,7 +53,16 @@ export async function insertDraftCphRecord (server, rawSubmission) {
 
   if (!failedToParseBody) {
     draftCph = await mapDraftCphRecord(draftCph, submissionBody, server)
-    draftCph = await processCphRecord(server, draftCph)
+  }
+
+  if (draftCph.lifecycleStatus !== CPH_STATUS.MANUAL_REVIEW) {
+    try {
+      draftCph = await processCphRecord(server, draftCph)
+    } catch (error) {
+      server.logger.error(error, 'Failed to process CPH record:')
+      draftCph.validationErrors.push(createValidationFailure('Failed to process CPH record:', { message: error.message }))
+      draftCph.lifecycleStatus = CPH_STATUS.MANUAL_REVIEW
+    }
   }
 
   try {

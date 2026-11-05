@@ -4,6 +4,10 @@ export async function generateCphNumber (server, easting, northing) {
   try {
     const parishInfo = await server.findParishesByWgs84(server.db, easting, northing)
 
+    if (!parishInfo || parishInfo.length === 0) {
+      throw new Error('No parish information found for the given coordinates')
+    }
+
     const parishSchema = Joi.array().items(
       Joi.object({
         name: Joi.string().required(),

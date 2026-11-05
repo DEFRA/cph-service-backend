@@ -44,8 +44,8 @@ const rawBodySchema = Joi.object({
       hNCJCl: Joi.array().items( // Eastings and northings for the area where you'll keep livestock
         Joi.object({
           UOmNur: Joi.object({
-            easting: Joi.number().required(),
-            northing: Joi.number().required()
+            easting: Joi.number().strict().required(),
+            northing: Joi.number().strict().required()
           }).required()
         }).required()
       ).required()
