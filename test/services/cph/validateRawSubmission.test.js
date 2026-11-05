@@ -24,8 +24,19 @@ const buildSubmission = ({ date, meta, main } = {}) => ({
     main: {
       vumpmr: ['Cattle'],
       yDwSNa: { day: 21, month: 10, year: 2026 },
+      rOgnUv: true,
       ...(date && { yDwSNa: date }),
       ...main
+    },
+    repeaters: {
+      hNCJCl: [
+        {
+          UOmNur: {
+            easting: 248741,
+            northing: 63688,
+          },
+        }
+      ]
     }
   }
 })

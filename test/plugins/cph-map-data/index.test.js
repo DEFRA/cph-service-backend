@@ -39,6 +39,7 @@ describe('#mapData plugin', () => {
     lock = { free: vi.fn().mockResolvedValue() }
     server = {
       db: {},
+      decorate: vi.fn(),
       route: vi.fn(),
       logger: { info: vi.fn(), error: vi.fn() },
       locker: { lock: vi.fn().mockResolvedValue(lock) },

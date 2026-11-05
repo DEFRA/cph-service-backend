@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { processCphRecord } from '../../../../src/services/cph/process-cph.js'
 import { generateCphNumber } from '../../../../src/services/cph/cph-number.js'
-import { CPH_STATUS } from '../../../../src/services/cph/cph-parameters.js'
+import { CPH_HOLDING_TYPES, CPH_STATUS } from '../../../../src/services/cph/cph-parameters.js'
 
 vi.mock('../../../../src/services/cph/cph-number.js', () => ({
   generateCphNumber: vi.fn()
@@ -53,7 +53,7 @@ describe('processCphRecord', () => {
 
     const result = await processCphRecord(server, createDraft())
 
-    expect(generateCphNumber).toHaveBeenCalledWith(server, 100, 200)
+    expect(generateCphNumber).toHaveBeenCalledWith(server, 100, 200, CPH_HOLDING_TYPES.PERMANENT)
     expect(result.cphNumber).toBe('12/345/0001')
     expect(result.lifecycleStatus).toBe(CPH_STATUS.ACTIVE)
     expect(result.startDate).toBe('2026-01-02T03:04:05.000Z')

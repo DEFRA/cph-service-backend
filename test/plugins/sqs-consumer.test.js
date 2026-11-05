@@ -6,13 +6,13 @@ import {
   buildSqsClientConfig
 } from '../../src/plugins/sqs-consumer.js'
 import { insertRawFormSubmission } from '../../src/services/rawFormSubmissions.js'
-import { insertDraftCphRecord } from '../../src/services/cphRecords.js'
+import { insertDraftCphRecord } from '../../src/services/cph/cphRecords.js'
 
 vi.mock('../../src/services/rawFormSubmissions.js', () => ({
   insertRawFormSubmission: vi.fn()
 }))
 
-vi.mock('../../src/services/cphRecords.js', () => ({
+vi.mock('../../src/services/cph/cphRecords.js', () => ({
   insertDraftCphRecord: vi.fn()
 }))
 

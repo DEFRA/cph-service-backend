@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { generateCphNumber } from '../../../../src/services/cph/cph-number.js'
+import { CPH_HOLDING_TYPES } from '../../../../src/services/cph/cph-parameters.js'
 
 describe('generateCphNumber', () => {
   let server
@@ -41,10 +42,10 @@ describe('generateCphNumber', () => {
       server.findParishesByWgs84.mockResolvedValue(mockParishData)
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        value: { sequence: 1, cpNumber: '05/042', holdingType: 'permanent' }
+        sequence: 1, cpNumber: '05/042', holdingType: 'permanent'
       })
 
-      const result = await generateCphNumber(server, 123456, 789012, 'permanent')
+      const result = await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
 
       expect(result).toBe('05/042/0001')
     })
@@ -61,10 +62,10 @@ describe('generateCphNumber', () => {
       server.findParishesByWgs84.mockResolvedValue(mockParishData)
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        value: { sequence: 1, cpNumber: '05/042', holdingType: 'permanent' }
+        sequence: 1, cpNumber: '05/042', holdingType: 'permanent'
       })
 
-      const result = await generateCphNumber(server, 123456, 789012, 'permanent')
+      const result = await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
 
       expect(result).toBe('05/042/0001')
       expect(mockSequenceCollection.findOneAndUpdate).toHaveBeenCalledWith(
@@ -91,16 +92,16 @@ describe('generateCphNumber', () => {
 
       // First call returns sequence 1
       mockSequenceCollection.findOneAndUpdate.mockResolvedValueOnce({
-        value: { sequence: 1, cpNumber: '10/100', holdingType: 'permanent' }
+        sequence: 1, cpNumber: '10/100', holdingType: 'permanent'
       })
-      const firstResult = await generateCphNumber(server, 123456, 789012, 'permanent')
+      const firstResult = await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
       expect(firstResult).toBe('10/100/0001')
 
       // Second call returns sequence 2 (incremented)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValueOnce({
-        value: { sequence: 2, cpNumber: '10/100', holdingType: 'permanent' }
+        sequence: 2, cpNumber: '10/100', holdingType: 'permanent'
       })
-      const secondResult = await generateCphNumber(server, 123456, 789012, 'permanent')
+      const secondResult = await generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT)
       expect(secondResult).toBe('10/100/0002')
 
       // Verify findOneAndUpdate was called twice
@@ -119,10 +120,10 @@ describe('generateCphNumber', () => {
       server.findParishesByWgs84.mockResolvedValue(mockParishData)
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        value: { sequence: 4999, cpNumber: '99/999', holdingType: 'permanent' }
+        sequence: 4999, cpNumber: '99/999', holdingType: 'permanent'
       })
 
-      const result = await generateCphNumber(server, 500000, 500000, 'permanent')
+      const result = await generateCphNumber(server, 500000, 500000, CPH_HOLDING_TYPES.PERMANENT)
 
       expect(result).toBe('99/999/4999')
     })
@@ -139,10 +140,10 @@ describe('generateCphNumber', () => {
       server.findParishesByWgs84.mockResolvedValue(mockParishData)
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        value: { sequence: 3, cpNumber: '01/002', holdingType: 'permanent' }
+        sequence: 3, cpNumber: '01/002', holdingType: 'permanent'
       })
 
-      const result = await generateCphNumber(server, 100, 200, 'permanent')
+      const result = await generateCphNumber(server, 100, 200, CPH_HOLDING_TYPES.PERMANENT)
 
       expect(result).toBe('01/002/0003')
     })
@@ -201,7 +202,7 @@ describe('generateCphNumber', () => {
     test('throws error when no parish information is found', async () => {
       server.findParishesByWgs84.mockResolvedValue([])
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('No parish information found for the given coordinates')
     })
@@ -209,7 +210,7 @@ describe('generateCphNumber', () => {
     test('throws error when parish information is null', async () => {
       server.findParishesByWgs84.mockResolvedValue(null)
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('No parish information found for the given coordinates')
     })
@@ -224,7 +225,7 @@ describe('generateCphNumber', () => {
 
       server.findParishesByWgs84.mockResolvedValue(invalidParishData)
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('Parish information validation failed')
     })
@@ -239,7 +240,7 @@ describe('generateCphNumber', () => {
 
       server.findParishesByWgs84.mockResolvedValue(invalidParishData)
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('Parish information validation failed')
     })
@@ -254,7 +255,7 @@ describe('generateCphNumber', () => {
 
       server.findParishesByWgs84.mockResolvedValue(invalidParishData)
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('Parish information validation failed')
     })
@@ -270,7 +271,7 @@ describe('generateCphNumber', () => {
 
       server.findParishesByWgs84.mockResolvedValue(invalidParishData)
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('Parish information validation failed')
     })
@@ -279,7 +280,7 @@ describe('generateCphNumber', () => {
       const error = new Error('Database connection failed')
       server.findParishesByWgs84.mockRejectedValue(error)
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('Database connection failed')
     })
@@ -298,7 +299,7 @@ describe('generateCphNumber', () => {
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockRejectedValue(error)
 
-      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+      await expect(generateCphNumber(server, 123456, 789012, CPH_HOLDING_TYPES.PERMANENT))
         .rejects
         .toThrow('MongoDB update failed')
     })
@@ -315,12 +316,12 @@ describe('generateCphNumber', () => {
       server.findParishesByWgs84.mockResolvedValue(mockParishData)
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        value: { sequence: 5000, cpNumber: '05/042', holdingType: 'permanent' }
+        sequence: 5000, cpNumber: '05/042', holdingType: 'permanent'
       })
 
       await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
         .rejects
-        .toThrow('Holding number exceeds the maximum allowed value of 4999')
+        .toThrow('Holding number exceeds the maximum allowed value for holding type permanent of 4999')
     })
 
     test('logs error to console when generation fails', async () => {
@@ -405,7 +406,7 @@ describe('generateCphNumber', () => {
       server.findParishesByWgs84.mockResolvedValue(mockParishData)
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockResolvedValue({
-        value: { sequence: 1, cpNumber: '05/042', holdingType: 'permanent' }
+        sequence: 1, cpNumber: '05/042', holdingType: 'permanent'
       })
 
       const result = await generateCphNumber(server, 123456, 789012, 'permanent')
@@ -442,4 +443,3 @@ describe('generateCphNumber', () => {
     })
   })
 })
-
