@@ -119,7 +119,102 @@ Illustrative fragment, not yet implemented. Role labels follow the LDM; stored v
 
 This example represents a person only. Organisation details, contacts, addresses and party identifiers will be considered next.
 
-Whether parties should be shared across CPH records thought references remains an open decision.
+Whether parties should be shared across CPH records through references remains an open decision.
+
+### Person fields and LDM alignment
+
+The supplied XSD defines Person as an extension of Party, which extends Identified Item. The proposed embedded structure flattens this inheritance.
+
+| XSD Person field | Proposed property | Storage type | XSD occurrence |
+| --- | --- | --- | --- |
+| First Name | firstName | String | 1 |
+| Last Name | lastName | String | 1 |
+| Middle Name | middleName | String | 0..1 |
+| Title | title | String | 0..1 |
+| Alias Name | aliasName | String | 0..1 |
+| Birth Date | birthDate | String (YYYY-MM-DD) | 0..1 |
+| Death Date | deathDate | String (YYYY-MM-DD) | 0..1 |
+
+These are candidate physical representations for review. The aliasName proposal uses a MongoDB string rather than carrying over the xs:Name constraint. Date-only values are proposed as strings without a time component.
+
+The current example includes firstName and lastName only. Inclusion of the other Person fields depends on agreed CPH requirements and CPH-115 mapping.
+
+XSD occurrence describes the logical model export; it does not establish Draft-stage completeness or the minimum information required for allocation. Those requirements remain to be confirmed.
+
+Party contact relationships and inherited identifiers and audit information are considered separately. The roles array combines the LDM's separate party-role assignments; whether assignments need their own identifiers, dates or other properties remains an open decision.
+
+### Role representation and LDM alignment
+
+The supplied XSD defines Party in Role with one party and one partyRole. CPH Party In Role extends it and adds one required CPHPartyRole.
+
+CPHPartyRole uses the following values:
+
+- CPH Holder
+- Keeper
+- Land Owner
+- Primary Contact Person
+- Secondary Contact Person
+
+The proposed roles array stores CPH-specific role values against each embedded party, allowing several roles without repeating the party details.
+
+This simplifies the exported structure. Open question for Tagem: Is CPHPartyRole intended to specialise the inherited partyRole, or do these represent distinct values? If they have distinct meanings, the physical model needs to preserve both.
+
+The inspected role-assignment definitions declare no assignment identifiers, dates or audit fields. Whether these are needed remains a requirements question.
+
+### Organisation fields and LDM alignment
+
+The supplied XSD defines Organisation as an extension of Party, which extends Identified Item. Like Person, the proposed embedded structure flattens this inheritance and sets partyType to "Organisation".
+
+| XSD Organisation field | Proposed property | Storage type | XSD occurrence |
+| --- | --- | --- | --- |
+| Charity Number | charityNumber | String | 1 |
+| Establishment Type | establishmentType | String | 0..1 |
+| Organisation Dissolution Date | dissolutionDate | String (YYYY-MM-DD) | 0..1 |
+| Organisation Incorporation Date | incorporationDate | String (YYYY-MM-DD) | 0..1 |
+| Organisation Legal Name | legalName | String | 1 |
+| Organisation Legal Status | legalStatus | String | 1 |
+| Organisation Name | organisationName | String | 1 |
+| Organisation URL | url | String | 0..1 |
+| organisationType | organisationType | Object (embedded) | 1 |
+
+This example shows the proposed embedded organisationType object, with organisationType.name stored as a string.
+
+```json
+{
+    "partyType": "Organisation",
+    "charityNumber": "SC123456",
+    "legalName": "Example Charity Ltd",
+    "organisationName": "Example Charity",
+    "legalStatus": "Registered Charity",
+    "organisationType": {
+        "name": "Charity"
+    },
+    "roles": ["CPH Holder"]
+}
+```
+
+**XSD facts vs. proposed storage decisions:**
+
+- The XSD specifies Organisation Name and Organisation URL, and Organisation Type Name, as xs:Name type (XML name constraints). The proposed MongoDB storage uses String instead, as xs:Name constraints are not automatically carried over to MongoDB strings and validation would require explicit application logic.
+- Dissolution Date and Incorporation Date are declared in the XSD as xs:date. The proposed MongoDB representation uses strings in YYYY-MM-DD format to maintain consistency with Person date fields and to avoid time-zone complications.
+- Establishment Type is documented in the XSD as optional; examples given are "Market, Showground or Zoo", but no enumeration is defined, making the valid values open-ended pending reference data confirmation.
+- The Charity Number is marked as required (minOccurs="1") in the XSD, though not all organisations are charities; this may need refinement depending on CPH use cases.
+
+**OrganisationType element:** The XSD declares organisationType as an element whose type is the Organisation Type complex type. That complex type contains a single "Organisation Type Name" field (xs:Name). The proposed embedded MongoDB representation as an object with a name property is a design proposal; the XSD does not establish a database reference arrangement.
+
+Open questions for requirements confirmation (Tagem):
+
+XSD occurrence declares these fields as required (minOccurs="1"), but this does not establish whether they are mandatory at Draft or allocated stage:
+
+- **Charity Number** – The XSD requires this field on Organisation. Should the CPH model require it only for registered charities, and at what stage should it be required?
+
+- **Organisation Legal Name vs. Organisation Name** – The XSD defines both as required (minOccurs="1"). What is the semantic distinction between these two fields?
+
+Other open questions:
+
+- Which Organisation fields are needed for Draft and allocated CPH records, and which can be omitted during initial submission?
+- Should Establishment Type be restricted to a controlled enumeration, or remain open-ended?
+- Will Organisation Type values be provided by an external reference data system or hardcoded in the application?
 
 ## XSD source checks
 
