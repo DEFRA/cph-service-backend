@@ -435,14 +435,14 @@ describe('generateCphNumber', () => {
     })
 
     test('throws after exhausting retries on repeated duplicate key errors', async () => {
-      const duplicateKeyError = Object.assign(new Error('E11000 duplicate key'), { code: 11000 })
+      const duplicateKeyError = Object.assign(new Error('Duplicate key error'), { code: 11000 })
       server.findParishesByWgs84.mockResolvedValue([{ name: 'Test Parish', countyRef: 5, parishRef: 42 }])
       mockDb.collection.mockReturnValue(mockSequenceCollection)
       mockSequenceCollection.findOneAndUpdate.mockRejectedValue(duplicateKeyError)
 
       await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
         .rejects
-        .toBe(duplicateKeyError)
+        .toThrow('Failed to increment holding number sequence due to duplicate keys. Retried 3 times:')
       expect(mockSequenceCollection.findOneAndUpdate).toHaveBeenCalledTimes(3)
     })
 

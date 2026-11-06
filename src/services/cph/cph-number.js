@@ -58,7 +58,7 @@ async function incrementSequence (server, cpNumber, holdingType, holdingRange, a
     if (error?.code === DUPLICATE_KEY_ERROR_CODE && attempt < MAX_UPSERT_ATTEMPTS) {
       return incrementSequence(server, cpNumber, holdingType, holdingRange, attempt + 1)
     }
-    throw new Error('Failed to increment holding number sequence: ' + error.message)
+    throw new Error('Failed to increment holding number sequence due to duplicate keys. Retried ' + attempt + ' times: ' + error.message)
   }
 }
 

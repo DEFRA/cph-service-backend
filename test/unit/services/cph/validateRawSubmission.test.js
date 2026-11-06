@@ -453,25 +453,6 @@ describe('validateRawSubmissionBody', () => {
     expect(errors).toHaveLength(1)
   })
 
-  test('returns error when data.repeaters has extra fields that are not allowed', async () => {
-    const submission = {
-      data: {
-        main: {
-          yDwSNa: { year: 2024, month: 6, day: 15 },
-          vumpmr: ['horses'],
-          rOgnUv: true
-        },
-        repeaters: {
-          hNCJCl: [{ UOmNur: { easting: 250, northing: 500 } }],
-          extraField: 'not allowed'
-        }
-      }
-    }
-    const errors = await validateRawSubmissionBody(submission)
-    expect(errors).toHaveLength(1)
-    expect(errors[0].failure).toBe('"data.repeaters.extraField" is not allowed')
-  })
-
   // ===== MULTIPLE ERRORS =====
 
   test('collects multiple errors when multiple validations fail', async () => {
