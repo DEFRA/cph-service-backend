@@ -5,9 +5,9 @@ const today = new Date()
 const formMetaData = {
   meta: {
     schemaVersion: 1,
-    timestamp: '2026-10-21T13:03:06.863Z',
+    timestamp: '2026-11-04T12:01:27.286Z',
     referenceNumber: `FN4-${Date.now().toString(36).toUpperCase()}`,
-    formName: 'Apply for a county parish holding (CPH) number',
+    formName: 'Apply for a county parish holding (CPH) number (dev copy)',
     formId: 'cph-1234-5678-9012-3456',
     formSlug: 'apply-for-a-county-parish-holding-cph-number',
     status: 'live',
@@ -15,8 +15,8 @@ const formMetaData = {
     notificationEmail: 'example-email-submission-recipient@defra.com',
     language: 'en-GB',
     versionMetadata: {
-      versionNumber: 401,
-      createdAt: '2026-09-25T15:26:13.720Z',
+      versionNumber: 2,
+      createdAt: '2026-09-02T13:57:07.816Z',
     },
   },
   data: {
@@ -34,15 +34,16 @@ const formMetaData = {
       ],
       FsSpLA: 'Im a hobbyist keeper',
       QvSFQU: 'Mr',
-      fGBFPv: 'Test',
-      BzFtpG: null,
-      HEHgbQ: 'User',
+      fGBFPv: 'First',
+      BzFtpG: 'Middle',
+      HEHgbQ: 'Last',
       aEFhyW: '07070707070',
       tmSOkR: null,
-      uZcVcc: 'email@email.com',
+      uZcVcc: 'name@email.com',
       hpmkrN: {
         addressLine1: 'Address 1',
-        town: 'Town',
+        addressLine2: 'Address 2',
+        town: 'City',
         county: 'County',
         postcode: 'PO1 2CO',
       },
@@ -58,10 +59,10 @@ const formMetaData = {
       MiEhCV: true,
       xklZWO: "I'll email the cattle ear tag numbers to the British Cattle Movement Service (BCMS) at a later date",
       CeHUdX: false,
-      XkUCYq: 'Vets',
+      XkUCYq: 'Vets Online',
       rypJGc: {
-        addressLine1: 'Vets Addres 1',
-        town: 'Vets Town',
+        addressLine1: 'Vets Address 1',
+        town: 'Vets City',
         county: 'Vets County',
         postcode: 'VE1 2TS',
       },
@@ -83,6 +84,12 @@ const formMetaData = {
           UOmNur: {
             easting: 248741,
             northing: 63688,
+          },
+        },
+        {
+          UOmNur: {
+            easting: 248700,
+            northing: 63600,
           },
         },
       ],
@@ -1239,7 +1246,7 @@ const formMetaData = {
     },
     {
       conditionId: 'edca671d-6e60-4e0c-8b46-8d6e27e75f27',
-      outcome: 'false',
+      outcome: 'true',
       references: [
         {
           componentId: '78f7efe7-3697-463b-9246-13a7eb288ace',

@@ -1,5 +1,8 @@
-import { validateRawSubmissionBody, validateRawSubmissionMeta } from './cph/validateRawSubmission.js'
-import { createValidationFailure } from '../helpers/validation-failure.js'
+import { validateRawSubmissionMeta } from './validateRawSubmission.js'
+import { createValidationFailure } from '../../helpers/validation-failure.js'
+import { processCphRecord } from './process-cph.js'
+import { mapDraftCphRecord } from './cph-mapping.js'
+import { CPH_STATUS } from './cph-parameters.js'
 
 async function createDraftCphRecord (rawSubmission, submissionBody, validationErrors, server) {
   const now = new Date()
@@ -16,7 +19,8 @@ async function createDraftCphRecord (rawSubmission, submissionBody, validationEr
   validationErrors.push(...rawMetaValidationErrors)
 
   return {
-    lifecycleStatus: 'Draft',
+    cphNumber: '',
+    lifecycleStatus: CPH_STATUS.DRAFT,
     source: {
       rawSubmissionId: rawSubmission?._id,
       receivedAt: rawSubmission?.receivedAt,
@@ -30,29 +34,6 @@ async function createDraftCphRecord (rawSubmission, submissionBody, validationEr
     modifiedAt: now,
     modifiedBy: actor,
     validationErrors
-  }
-}
-
-async function mapDraftCphRecord (draft, submissionBody, server) {
-  const rawBodyValidationErrors = await validateRawSubmissionBody(submissionBody, server)
-  draft.validationErrors.push(...rawBodyValidationErrors)
-
-  const answers = submissionBody.data?.main
-
-  // Create form answer keys: docs/create-cph-form-field-mapping.md
-  const {
-    vumpmr: livestockTypes,
-    yDwSNa: expectedArrivalDate
-  } = answers
-
-  const livestockInformation = {}
-
-  livestockInformation.types = Array.isArray(livestockTypes) ? [...livestockTypes] : []
-  livestockInformation.expectedArrivalDate = expectedArrivalDate
-
-  return {
-    ...draft,
-    livestockInformation
   }
 }
 
@@ -73,6 +54,16 @@ export async function insertDraftCphRecord (server, rawSubmission) {
 
   if (!failedToParseBody) {
     draftCph = await mapDraftCphRecord(draftCph, submissionBody, server)
+  }
+
+  if (draftCph.lifecycleStatus !== CPH_STATUS.MANUAL_REVIEW) {
+    try {
+      draftCph = await processCphRecord(server, draftCph)
+    } catch (error) {
+      server.logger.error(error, 'Failed to process CPH record:')
+      draftCph.validationErrors.push(createValidationFailure('Failed to process CPH record:', { message: error.message }))
+      draftCph.lifecycleStatus = CPH_STATUS.MANUAL_REVIEW
+    }
   }
 
   try {

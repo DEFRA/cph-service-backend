@@ -95,6 +95,18 @@ describe('#mongoDb', () => {
 
       await collection.deleteMany({ 'source.rawSubmissionId': 'DUP-INDEX-TEST' })
     })
+
+    test('cph-sequences should reject duplicate cpNumber and holdingType', async () => {
+      const collection = server.db.collection('cph-sequences')
+      const key = { cpNumber: 'DUP-INDEX-TEST', holdingType: 'permanent' }
+      await collection.insertOne({ ...key })
+
+      await expect(
+        collection.insertOne({ ...key })
+      ).rejects.toMatchObject({ code: 11000 })
+
+      await collection.deleteMany(key)
+    })
   })
 
   describe('Shut down', () => {

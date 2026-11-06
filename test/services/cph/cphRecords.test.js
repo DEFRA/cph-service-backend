@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { insertDraftCphRecord } from '../../src/services/cphRecords.js'
+import { insertDraftCphRecord } from '../../../src/services/cph/cphRecords.js'
 import {
   validateRawSubmissionBody,
   validateRawSubmissionMeta
-} from '../../src/services/cph/validateRawSubmission.js'
-import * as validationFailureModule from '../../src/helpers/validation-failure.js'
+} from '../../../../src/services/cph/validateRawSubmission.js'
+import * as validationFailureModule from '../../../src/helpers/validation-failure.js'
 
-vi.mock('../../src/services/cph/validateRawSubmission.js', () => ({
+vi.mock('../../../src/services/cph/validateRawSubmission.js', () => ({
   validateRawSubmissionBody: vi.fn(),
   validateRawSubmissionMeta: vi.fn()
 }))
@@ -26,7 +26,18 @@ const body = {
   data: {
     main: {
       vumpmr: ['Cattle'],
-      yDwSNa: { day: 21, month: 10, year: 2026 }
+      yDwSNa: { day: 21, month: 10, year: 2026 },
+      rOgnUv: true
+    },
+    repeaters: {
+      hNCJCl: [
+        {
+          UOmNur: {
+            easting: 248741,
+            northing: 63688,
+          },
+        }
+      ]
     }
   }
 }
@@ -60,27 +71,29 @@ describe('insertDraftCphRecord', () => {
   })
 
   test('creates a draft record and validates both meta and body data', async () => {
-    const metaErrors = [{
-      timestamp: '2026-10-09T10:00:00.000Z',
-      failure: '"meta.referenceNumber" is required',
-      context: { key: 'referenceNumber', label: 'referenceNumber' }
-    }]
-    const bodyErrors = [{
-      timestamp: '2026-10-09T10:00:00.000Z',
-      failure: '"data.main.vumpmr" must contain at least 1 items',
-      context: { key: 'vumpmr', label: 'vumpmr' }
-    }]
-
-    validateRawSubmissionMeta.mockResolvedValue(metaErrors)
-    validateRawSubmissionBody.mockResolvedValue(bodyErrors)
+    validateRawSubmissionMeta.mockResolvedValue([])
+    validateRawSubmissionBody.mockResolvedValue([])
 
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
+    const findOneAndUpdate = vi.fn().mockResolvedValue({ sequence: 1 })
     const server = {
-      db: { collection: vi.fn(() => ({ updateOne })) },
+      db: {
+        collection: vi.fn((name) => {
+          if (name === 'cph-sequences') {
+            return { findOneAndUpdate }
+          }
+          return { updateOne }
+        })
+      },
       logger: {
         info: vi.fn(),
         error: vi.fn()
-      }
+      },
+      findParishesByWgs84: vi.fn().mockResolvedValue([{
+        name: 'Test Parish',
+        countyRef: 1,
+        parishRef: 1
+      }])
     }
 
     await insertDraftCphRecord(server, rawSubmission)
@@ -88,12 +101,14 @@ describe('insertDraftCphRecord', () => {
     expect(validateRawSubmissionMeta).toHaveBeenCalledWith(body, server)
     expect(validateRawSubmissionBody).toHaveBeenCalledWith(body, server)
     expect(server.db.collection).toHaveBeenCalledWith('cph-records')
+    expect(server.findParishesByWgs84).toHaveBeenCalledWith(server.db, 248741, 63688)
 
     expect(updateOne).toHaveBeenCalledWith(
       { 'source.rawSubmissionId': rawSubmission._id },
       {
         $setOnInsert: expect.objectContaining({
-          lifecycleStatus: 'Draft',
+          lifecycleStatus: 'Active',
+          cphNumber: '01/001/0001',
           source: expect.objectContaining({
             rawSubmissionId: rawSubmission._id,
             receivedAt: rawSubmission.receivedAt,
@@ -106,10 +121,15 @@ describe('insertDraftCphRecord', () => {
           createdBy: actor,
           modifiedAt: now,
           modifiedBy: actor,
-          validationErrors: [...metaErrors, ...bodyErrors],
+          validationErrors: [],
           livestockInformation: {
             types: ['Cattle'],
-            expectedArrivalDate: body.data.main.yDwSNa
+            expectedArrivalDate: body.data.main.yDwSNa,
+            landOwned: true,
+            locationEastingsAndNorthings: [{
+              easting: 248741,
+              northing: 63688
+            }]
           }
         })
       },
@@ -124,12 +144,25 @@ describe('insertDraftCphRecord', () => {
     }
 
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true })
+    const findOneAndUpdate = vi.fn().mockResolvedValue({ sequence: 1 })
     const server = {
-      db: { collection: vi.fn(() => ({ updateOne })) },
+      db: {
+        collection: vi.fn((name) => {
+          if (name === 'cph-sequences') {
+            return { findOneAndUpdate }
+          }
+          return { updateOne }
+        })
+      },
       logger: {
         info: vi.fn(),
         error: vi.fn()
-      }
+      },
+      findParishesByWgs84: vi.fn().mockResolvedValue([{
+        name: 'Test Parish',
+        countyRef: 1,
+        parishRef: 1
+      }])
     }
 
     await insertDraftCphRecord(server, invalidRawSubmission)
@@ -145,7 +178,7 @@ describe('insertDraftCphRecord', () => {
       { 'source.rawSubmissionId': invalidRawSubmission._id },
       {
         $setOnInsert: expect.objectContaining({
-          lifecycleStatus: 'Draft',
+          lifecycleStatus: 'Manual Review',
           source: expect.objectContaining({
             rawSubmissionId: invalidRawSubmission._id,
             receivedAt: invalidRawSubmission.receivedAt,
@@ -154,13 +187,12 @@ describe('insertDraftCphRecord', () => {
             formVersion: 'Unknown',
             submittedAt: now
           }),
-          validationErrors: [
-            {
-              timestamp: now.toISOString(),
+          validationErrors: expect.arrayContaining([
+            expect.objectContaining({
               failure: 'Failed to parse raw submission body',
               context: invalidRawSubmission.body
-            }
-          ]
+            })
+          ])
         })
       },
       { upsert: true }

@@ -62,6 +62,10 @@ async function createIndexes (db) {
     .collection('raw-form-submissions')
     .createIndex({ referenceNumber: 1 }, { unique: true })
 
+  await db
+    .collection('cph-sequences')
+    .createIndex({ cpNumber: 1, holdingType: 1 }, { unique: true })
+
   await db.collection('cph-records').createIndex(
     { 'source.rawSubmissionId': 1 },
     {
