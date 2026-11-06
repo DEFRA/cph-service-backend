@@ -49,7 +49,7 @@ const rawBodySchema = Joi.object({
           }).required()
         }).required()
       ).required()
-    }).required(), // Repeaters section
+    }).required().unknown(true), // Repeaters section
   }).required().unknown(true),
 }).unknown(true)
 
