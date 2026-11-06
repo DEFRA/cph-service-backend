@@ -420,5 +420,41 @@ describe('generateCphNumber', () => {
         { upsert: true, returnDocument: 'after' }
       )
     })
+
+    test('retries when a concurrent upsert raises a duplicate key error', async () => {
+      server.findParishesByWgs84.mockResolvedValue([{ name: 'Test Parish', countyRef: 5, parishRef: 42 }])
+      mockDb.collection.mockReturnValue(mockSequenceCollection)
+      mockSequenceCollection.findOneAndUpdate
+        .mockRejectedValueOnce(Object.assign(new Error('E11000 duplicate key'), { code: 11000 }))
+        .mockResolvedValueOnce({ sequence: 2, cpNumber: '05/042', holdingType: 'permanent' })
+
+      const result = await generateCphNumber(server, 123456, 789012, 'permanent')
+
+      expect(result).toBe('05/042/0002')
+      expect(mockSequenceCollection.findOneAndUpdate).toHaveBeenCalledTimes(2)
+    })
+
+    test('throws after exhausting retries on repeated duplicate key errors', async () => {
+      const duplicateKeyError = Object.assign(new Error('E11000 duplicate key'), { code: 11000 })
+      server.findParishesByWgs84.mockResolvedValue([{ name: 'Test Parish', countyRef: 5, parishRef: 42 }])
+      mockDb.collection.mockReturnValue(mockSequenceCollection)
+      mockSequenceCollection.findOneAndUpdate.mockRejectedValue(duplicateKeyError)
+
+      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+        .rejects
+        .toBe(duplicateKeyError)
+      expect(mockSequenceCollection.findOneAndUpdate).toHaveBeenCalledTimes(3)
+    })
+
+    test('does not retry non duplicate key errors', async () => {
+      server.findParishesByWgs84.mockResolvedValue([{ name: 'Test Parish', countyRef: 5, parishRef: 42 }])
+      mockDb.collection.mockReturnValue(mockSequenceCollection)
+      mockSequenceCollection.findOneAndUpdate.mockRejectedValue(new Error('MongoDB update failed'))
+
+      await expect(generateCphNumber(server, 123456, 789012, 'permanent'))
+        .rejects
+        .toThrow('MongoDB update failed')
+      expect(mockSequenceCollection.findOneAndUpdate).toHaveBeenCalledTimes(1)
+    })
   })
 })

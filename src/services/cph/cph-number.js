@@ -1,6 +1,9 @@
 import Joi from 'joi'
 import { CPH_RANGES } from './cph-parameters.js'
 
+const DUPLICATE_KEY_ERROR_CODE = 11000
+const MAX_UPSERT_ATTEMPTS = 3
+
 export async function generateCphNumber (server, easting, northing, holdingType) {
   try {
     const parishInfo = await server.findParishesByWgs84(server.db, easting, northing)
@@ -38,8 +41,29 @@ export async function generateCphNumber (server, easting, northing, holdingType)
 
 async function getNextHoldingNumber (server, cpNumber, holdingType) {
   const holdingRange = CPH_RANGES[holdingType]
+  const sequenceDoc = await incrementSequence(server, cpNumber, holdingType, holdingRange)
 
-  const sequenceDoc = await server.db.collection('cph-sequences').findOneAndUpdate(
+  if (sequenceDoc.sequence > holdingRange.MAX) {
+    throw new Error(`Holding number exceeds the maximum allowed value for holding type ${holdingType} of ${holdingRange.MAX}`)
+  }
+
+  return sequenceDoc.sequence
+}
+
+async function incrementSequence (server, cpNumber, holdingType, holdingRange, attempt = 1) {
+  try {
+    return await upsertSequence(server, cpNumber, holdingType, holdingRange)
+  } catch (error) {
+    // Concurrent upserts on a new key race to insert; the loser hits the unique index and can safely retry as an update
+    if (error?.code === DUPLICATE_KEY_ERROR_CODE && attempt < MAX_UPSERT_ATTEMPTS) {
+      return incrementSequence(server, cpNumber, holdingType, holdingRange, attempt + 1)
+    }
+    throw new Error('Failed to increment holding number sequence: ' + error.message)
+  }
+}
+
+function upsertSequence (server, cpNumber, holdingType, holdingRange) {
+  return server.db.collection('cph-sequences').findOneAndUpdate(
     { cpNumber, holdingType },
     [
       {
@@ -59,10 +83,4 @@ async function getNextHoldingNumber (server, cpNumber, holdingType) {
       returnDocument: 'after'
     }
   )
-
-  if (sequenceDoc.sequence > holdingRange.MAX) {
-    throw new Error(`Holding number exceeds the maximum allowed value for holding type ${holdingType} of ${holdingRange.MAX}`)
-  }
-
-  return sequenceDoc.sequence
 }
