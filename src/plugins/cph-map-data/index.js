@@ -1,5 +1,6 @@
 import { isMapDataLoaded, loadMapData } from './helpers/mapData.js'
 import { initOsgb36ToWgs84 } from './helpers/osgb36.js'
+import { findParishesByWgs84 } from './helpers/parishLookup.js'
 import {
   createS3Client,
   getObjectBuffer,
@@ -25,6 +26,8 @@ export const mapData = {
           server.logger.error(e, 'Failed to load map data')
         )
       })
+
+      server.decorate('server', 'findParishesByWgs84', findParishesByWgs84)
     }
   }
 }

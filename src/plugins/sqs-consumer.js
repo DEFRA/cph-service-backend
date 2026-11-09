@@ -6,7 +6,7 @@ import {
 
 import { insertRawFormSubmission } from '../services/rawFormSubmissions.js'
 
-import { insertDraftCphRecord } from '../services/cphRecords.js'
+import { insertDraftCphRecord } from '../services/cph/cphRecords.js'
 
 const waitTimeSeconds = 20
 const maxNumberOfMessages = 10
