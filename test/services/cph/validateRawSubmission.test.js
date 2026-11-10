@@ -136,6 +136,40 @@ describe('validateRawSubmissionBody', () => {
 
       expect(errors).toHaveLength(3)
     })
+
+    test('requires qLmGSL when rOgnUv is false', async () => {
+      const submission = buildSubmission({ main: { rOgnUv: false } })
+
+      const errors = await validateRawSubmissionBody(submission, server)
+
+      expect(failures(errors)).toContain('"data.main.qLmGSL" is required')
+    })
+
+    test('requires uuQMUp when rOgnUv is false', async () => {
+      const submission = buildSubmission({ main: { rOgnUv: false } })
+
+      const errors = await validateRawSubmissionBody(submission, server)
+
+      expect(failures(errors)).toContain('"data.main.uuQMUp" is required')
+    })
+
+    test('allows qLmGSL and uuQMUp to be optional when rOgnUv is true', async () => {
+      const submission = buildSubmission({ main: { rOgnUv: true } })
+
+      const errors = await validateRawSubmissionBody(submission, server)
+
+      expect(errors).toEqual([])
+    })
+
+    test('accepts valid qLmGSL and uuQMUp when rOgnUv is false', async () => {
+      const submission = buildSubmission({
+        main: { rOgnUv: false, qLmGSL: true, uuQMUp: false }
+      })
+
+      const errors = await validateRawSubmissionBody(submission, server)
+
+      expect(errors).toEqual([])
+    })
   })
 
   describe('failure shape and logging', () => {

@@ -76,4 +76,50 @@ describe('processCphRecord', () => {
     expect(server.logger.error).toHaveBeenCalled()
     expect(generateCphNumber).not.toHaveBeenCalled()
   })
+
+  test('generates a CPH number when tenancy agreement is more than one year and landowner does not have CPH number', async () => {
+    const server = createServer()
+    generateCphNumber.mockResolvedValue('12/345/0002')
+
+    const result = await processCphRecord(server, createDraft({
+      landOwned: false,
+      tenancyAgreementMoreThanOneYear: true,
+      landownerHasCphNumber: false
+    }))
+
+    expect(generateCphNumber).toHaveBeenCalledWith(server, 100, 200, CPH_HOLDING_TYPES.PERMANENT)
+    expect(result.cphNumber).toBe('12/345/0002')
+    expect(result.lifecycleStatus).toBe(CPH_STATUS.ACTIVE)
+    expect(result.startDate).toBe('2026-01-02T03:04:05.000Z')
+  })
+
+  test('returns the draft unchanged when tenancy agreement is more than one year but landowner has CPH number', async () => {
+    const draft = createDraft({
+      landOwned: false,
+      tenancyAgreementMoreThanOneYear: true,
+      landownerHasCphNumber: true
+    })
+
+    const result = await processCphRecord(createServer(), draft)
+
+    expect(result).toBe(draft)
+    expect(result.lifecycleStatus).toBe(CPH_STATUS.DRAFT)
+    expect(result.cphNumber).toBe('')
+    expect(generateCphNumber).not.toHaveBeenCalled()
+  })
+
+  test('returns the draft unchanged when tenancy agreement is not more than one year', async () => {
+    const draft = createDraft({
+      landOwned: false,
+      tenancyAgreementMoreThanOneYear: false,
+      landownerHasCphNumber: false
+    })
+
+    const result = await processCphRecord(createServer(), draft)
+
+    expect(result).toBe(draft)
+    expect(result.lifecycleStatus).toBe(CPH_STATUS.DRAFT)
+    expect(result.cphNumber).toBe('')
+    expect(generateCphNumber).not.toHaveBeenCalled()
+  })
 })

@@ -241,6 +241,66 @@ describe('mapDraftCphRecord', () => {
       expect(result.livestockInformation.landOwned).toBe(false)
     })
 
+    test('maps tenancyAgreementMoreThanOneYear from qLmGSL correctly', async () => {
+      submissionBody.data.main.qLmGSL = true
+
+      const result = await mapDraftCphRecord(draft, submissionBody, server)
+
+      expect(result.livestockInformation.tenancyAgreementMoreThanOneYear).toBe(true)
+    })
+
+    test('handles false value for tenancyAgreementMoreThanOneYear', async () => {
+      submissionBody.data.main.qLmGSL = false
+
+      const result = await mapDraftCphRecord(draft, submissionBody, server)
+
+      expect(result.livestockInformation.tenancyAgreementMoreThanOneYear).toBe(false)
+    })
+
+    test('maps landownerHasCphNumber from uuQMUp correctly', async () => {
+      submissionBody.data.main.uuQMUp = true
+
+      const result = await mapDraftCphRecord(draft, submissionBody, server)
+
+      expect(result.livestockInformation.landownerHasCphNumber).toBe(true)
+    })
+
+    test('handles false value for landownerHasCphNumber', async () => {
+      submissionBody.data.main.uuQMUp = false
+
+      const result = await mapDraftCphRecord(draft, submissionBody, server)
+
+      expect(result.livestockInformation.landownerHasCphNumber).toBe(false)
+    })
+
+    test('handles missing qLmGSL field', async () => {
+      delete submissionBody.data.main.qLmGSL
+
+      const result = await mapDraftCphRecord(draft, submissionBody, server)
+
+      expect(result.livestockInformation.tenancyAgreementMoreThanOneYear).toBeUndefined()
+    })
+
+    test('handles missing uuQMUp field', async () => {
+      delete submissionBody.data.main.uuQMUp
+
+      const result = await mapDraftCphRecord(draft, submissionBody, server)
+
+      expect(result.livestockInformation.landownerHasCphNumber).toBeUndefined()
+    })
+
+    test('maps all tenancy and landowner fields when landOwned is false', async () => {
+      submissionBody.data.main.rOgnUv = false
+      submissionBody.data.main.qLmGSL = true
+      submissionBody.data.main.uuQMUp = false
+
+      const result = await mapDraftCphRecord(draft, submissionBody, server)
+
+      expect(result.livestockInformation.landOwned).toBe(false)
+      expect(result.livestockInformation.tenancyAgreementMoreThanOneYear).toBe(true)
+      expect(result.livestockInformation.landownerHasCphNumber).toBe(false)
+    })
+
     test('calls validateRawSubmissionBody with correct parameters', async () => {
       await mapDraftCphRecord(draft, submissionBody, server)
 
