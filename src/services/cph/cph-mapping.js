@@ -26,7 +26,9 @@ export async function mapDraftCphRecord (draft, submissionBody, server) {
   const {
     vumpmr: livestockTypes,
     yDwSNa: expectedArrivalDate,
-    rOgnUv: landOwned
+    rOgnUv: landOwned,
+    qLmGSL: tenancyAgreementMoreThanOneYear,
+    uuQMUp: landownerHasCphNumber
   } = answers
 
   const {
@@ -39,6 +41,8 @@ export async function mapDraftCphRecord (draft, submissionBody, server) {
   livestockInformation.expectedArrivalDate = expectedArrivalDate
   livestockInformation.landOwned = landOwned
   livestockInformation.locationEastingsAndNorthings = mapLocations(locationEastingsAndNorthings)
+  livestockInformation.tenancyAgreementMoreThanOneYear = tenancyAgreementMoreThanOneYear
+  livestockInformation.landownerHasCphNumber = landownerHasCphNumber
 
   return {
     ...draft,

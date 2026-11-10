@@ -39,6 +39,8 @@ const rawBodySchema = Joi.object({
       yDwSNa: dateParts.required(), // What date will the livestock arrive?
       vumpmr: Joi.array().min(1).items(Joi.string()).required(), // What livestock will you keep?
       rOgnUv: Joi.boolean().strict().required(), // Do you own the land?
+      qLmGSL: Joi.boolean().strict().optional(), // Is your tenancy agreement for more than one year?
+      uuQMUp: Joi.boolean().strict().optional() // Does the landowner have a CPH number for the land?
     }).required().unknown(true),
     repeaters: Joi.object({
       hNCJCl: Joi.array().items( // Eastings and northings for the area where you'll keep livestock
