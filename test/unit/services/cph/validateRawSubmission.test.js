@@ -20,7 +20,9 @@ describe('validateRawSubmissionBody', () => {
       main: {
         yDwSNa: { year: 2025, month: 12, day: 31 },
         vumpmr: ['cattle', 'sheep', 'pigs'],
-        rOgnUv: false
+        rOgnUv: false,
+        qLmGSL: true,
+        uuQMUp: false
       },
       repeaters: {
         hNCJCl: [
@@ -87,7 +89,9 @@ describe('validateRawSubmissionBody', () => {
         main: {
           yDwSNa: { year: 2050, month: 12, day: 31 },
           vumpmr: ['goats'],
-          rOgnUv: false
+          rOgnUv: false,
+          qLmGSL: true,
+          uuQMUp: false
         },
         repeaters: {
           hNCJCl: [{ UOmNur: { easting: 999999, northing: 999999 } }]
