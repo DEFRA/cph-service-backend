@@ -2,11 +2,16 @@ import { generateCphNumber } from './cph-number.js'
 import { CPH_STATUS, CPH_HOLDING_TYPES } from './cph-parameters.js'
 
 export async function processCphRecord (server, draftCph) {
-  const { landOwned } = draftCph.livestockInformation
+  const { landOwned, tenancyAgreementMoreThanOneYear, landownerHasCphNumber } = draftCph.livestockInformation
 
   if (landOwned) {
     return await permanentCphWorkflow(server, draftCph, CPH_HOLDING_TYPES.PERMANENT)
   }
+
+  if (tenancyAgreementMoreThanOneYear && !landownerHasCphNumber) {
+    return await permanentCphWorkflow(server, draftCph, CPH_HOLDING_TYPES.PERMANENT)
+  }
+
   return draftCph
 }
 
