@@ -13,6 +13,9 @@ Review as a principal developer: assess correctness, security, reliability, desi
 2. **Understand intent.** Read the PR description, linked ticket and commit messages. If the intent is unclear, say so and list what you assumed.
 3. **Read the code in context.** Open the surrounding files, callers and tests. Do not judge a hunk in isolation.
 4. **Run the checks** when possible: `npm run lint` and `npm test`. Report failures as findings, and state clearly if you could not run them.
+   - A failure may not be caused by the change. Something may be missing or broken on `main`, in the service setup (for example MongoDB, SQS or S3 not running, missing dependencies) or in config (`src/config.js`, env vars, `compose/`).
+   - For each failure, establish whether the change caused it: re-run the failing check on `main` (or with the change stashed) and inspect the error for missing services, config or environment.
+   - Report failures that the change did not cause separately under "Unrelated failures", and do not count them toward the verdict.
 5. **Work through the review areas below.**
 6. **Report** using the output format below.
 
@@ -95,6 +98,9 @@ Use exactly these headings, in this order. Write "None" under any empty section.
 ## Minor (non-critical) issues
 1. **<short title>** - `path/to/file.js:LINE`
    - <issue and suggestion in one or two lines>
+
+## Unrelated failures
+<Lint, test or startup failures that also occur without this change (missing from main, the service or config), with the evidence and likely cause. Write "None" if there are none.>
 
 ## Positives
 <Optional: good decisions worth keeping, kept brief>
