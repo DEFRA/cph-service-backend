@@ -41,10 +41,10 @@ The implementation sets `lifecycleStatus` to one of three values:
 
 Successful permanent allocation happens before the first `cph-records` write. The service builds the record in memory, starts it as `"Draft"`, runs mapping and validation, and then runs allocation. If allocation succeeds, the in-memory record already holds `cphNumber`, `lifecycleStatus: "Active"` and `startDate` when it is written. The implementation does not store a Draft and later update it, and it does not create a second document at allocation. `"Manual Review"` is an implementation value that is not in the XSD `CPH Status Type`.
 
-A submission is allocated a permanent CPH when either condition holds:
+The XSD `CPH Status Type` lists `Draft`, `Active`, `Inactive`, `Under Review`, `Rejected` and `Archive`. The implementation does not set `Inactive`, `Rejected` or `Archive`. Open points:
 
-- `livestockInformation.landOwned` is `true`.
-- `landOwned` is `false`, `tenancyAgreementMoreThanOneYear` is `true` and `landownerHasCphNumber` is `false`.
+- The solution architecture state transition diagram uses `Under Review`. Whether `"Manual Review"` maps to it is not decided.
+- The solution architecture state transition diagram uses `Not Required` for `Archive`. The scope of `Archive` is not decided.
 
 A renter whose tenancy is not more than one year, or whose landowner has a CPH number, is not allocated. That record remains `"Draft"` with an empty `cphNumber`. Nothing in the inspected code allocates it later.
 
@@ -82,7 +82,9 @@ The `cph-records` collection stores the following fields in the implementation i
 
 `modifiedAt` and `modifiedBy` equal `createdAt` and `createdBy` because the implementation writes the record once and has no later update path.
 
-The expected arrival date keys are `year`, `month` and `day`. Validation requires each to be an integer, with `year` of at least 2020, and checks that the combination is a real date. The original submitted value is stored, so conversion to the XSD's `xs:date` representation has not been implemented.
+The inspected backend does not populate parties. No mapping, validation or allocation step creates a `parties` array, party roles, contacts or addresses, and `cph-records` documents contain none of them. The party structures later in this document are proposals only.
+
+The current implementation stores `livestockInformation.expectedArrivalDate` as submitted, in an object with `year`, `month` and `day`fields. The proposed allocated CPH example shows it as a `YYYY-MM-DD` string.
 
 Metadata validation failures are recorded in `validationErrors` but do not change `lifecycleStatus`. A record can therefore be `"Active"` with a non-empty `validationErrors` array, and `source.formId`, `source.formVersion` and `source.applicationReference` can hold `"Unknown"`.
 
@@ -285,7 +287,8 @@ Role labels follow the supplied LDM. Stored values remain subject to agreement.
         "lastName": "Example",
         "roles": [
                 "CPH Holder",
-                "Primary Contact Person"
+                "Primary Contact Person",
+                "Land Owner"
             ]
         }
     ]
@@ -394,26 +397,28 @@ Open questions for Tagem and requirements confirmation (Tagem):
 - Should Establishment Type use a controlled list of values?
 - How will Organisation Type values be supplied and maintained?
 
-## Allocated permanent CPH example
+## Proposed allocated CPH structure
 
 The XSD defines `Permanent CPH` as an extension of `County Parish Holding` with no additional fields. The base type allows `CPH Number` to be absent and requires `CPH Type` (`xs:string`, 1), `Start Date` (`xs:dateTime`, 1) and `CPHLifeCycleState` (1).
 
 The implemented Active document is shown in the examples above. It stores `cphNumber` as a string, `lifecycleStatus` as `"Active"` and `startDate` as an ISO 8601 string. It does not store a CPH type, county, parish or a `locations` array.
 
-The excerpt below is a proposal. It illustrates how the allocated record might look if the structures proposed in this document were adopted. It retains the source link and shows an issued CPH number, a proposed `cphType` and a proposed `locations` array with county and parish.
+The example below is a proposal. It illustrates how an allocated record might look if the structures proposed in this document were adopted. All values are synthetic.
 
-The example uses the following assumptions for review:
+Assumptions for review:
 
-- `cphType` is a proposed property. The XSD requires a CPH Type, but the implementation does not store one. `"Permanent"` is an illustrative value. The XSD gives permanent, landless, temporary, TLA and 8000 series as examples.
-- `locations` is proposed and is not implemented. The implementation stores `livestockInformation.locationEastingsAndNorthings`.
-- County and parish are proposed strings containing illustrative names. The implementation does not store them.
-- `"Active"` is the status the implementation sets on successful permanent allocation. The status for other allocation outcomes remains to be confirmed.
-- `startDate` is shown as a proposed BSON Date, corresponding to the XSD's `xs:dateTime`. The implementation stores an ISO 8601 string. The business meaning and source of the value require agreement.
-- `expectedArrivalDate` is shown as a proposed `YYYY-MM-DD` string, corresponding to the XSD's `xs:date`. The implementation stores a `{ year, month, day }` object.
-- Coordinates are illustrative and have not been matched to the example county and parish.
-- `_id` and audit fields are omitted from this excerpt.
+- `cphType` is a proposed property. The XSD requires a CPH Type, but the implementation does not store one. `"Permanent"` is an illustrative value.
+- `locations` is proposed and not implemented. The implementation stores `livestockInformation.locationEastingsAndNorthings`. County and parish are illustrative strings and are not stored by the implementation. Coordinates have not been matched to them.
+- `"Active"` is the status set on successful permanent allocation. `startDate` is shown as a BSON Date corresponding to the XSD's `xs:dateTime`. The implementation stores an ISO 8601 string.
+- `expectedArrivalDate` is shown as a `YYYY-MM-DD` string corresponding to the XSD's `xs:date`. The implementation stores a `{ year, month, day }` object.
+- `parties` uses the proposed Person and Organisation fields and the proposed `roles` array of strings. The parties array shows one Person with multiple roles. Each role is represented as a strng.
+- `contacts` and `addresses` within a party are assumptions. Their property names, types and whether they are embedded are not agreed. Contact and address design is outstanding (see Remaining design work).
+- Audit fields follow the existing `createdAt`, `createdBy`, `modifiedAt` and `modifiedBy` types. After allocation, `modifiedAt` and `modifiedBy` equal the `created*` values, as the implementation has no later update path.
+-- `startDate` is shown as a proposed BSON Date, corresponding to the XSD's `xs:dateTime`. The implementation stores an ISO 8601 string. The business meaning and source of the value require agreement. Confirm whether `startDate` represents the allocation timestamp or the date holding becomes effective.
+
 ```json
 {
+    "_id": { "$oid": "000000000000000000000001" },
     "cphNumber": "00/000/0001",
     "cphType": "Permanent",
     "lifecycleStatus": "Active",
@@ -425,6 +430,11 @@ The example uses the following assumptions for review:
         "formVersion": 2,
         "submittedAt": { "$date": "2026-10-27T09:00:00.000Z" },
         "receivedAt": { "$date": "2026-10-27T09:00:01.000Z" }
+    },
+    "livestockInformation": {
+        "types": ["Cattle"],
+        "expectedArrivalDate": "2026-11-10",
+        "landOwned": true
     },
     "locations": [
         {
@@ -438,10 +448,31 @@ The example uses the following assumptions for review:
             }
         }
     ],
-    "livestockInformation": {
-        "types": ["Cattle"],
-        "expectedArrivalDate": "2026-11-10"
-    }
+    "parties": [
+        {
+            "partyType": "Person",
+            "firstName": "Alex",
+            "lastName": "Example",
+            "birthDate": "1980-01-01",
+            "roles": ["CPH Holder", "Primary Contact Person", "Land Owner"],
+            "contacts": [
+                { "contactType": "Email", "value": "alex.example@example.invalid" },
+                { "contactType": "Telephone", "value": "01000 000000" }
+            ],
+            "addresses": [
+                {
+                    "addressLine1": "1 Example Lane",
+                    "town": "Exampleton",
+                    "postcode": "AB1 2CD"
+                }
+            ]
+        }
+    ],
+    "validationErrors": [],
+    "createdAt": { "$date": "2026-10-27T09:00:02.000Z" },
+    "createdBy": { "identifier": "example-service", "name": "Example backend service" },
+    "modifiedAt": { "$date": "2026-10-27T09:00:02.000Z" },
+    "modifiedBy": { "identifier": "example-service", "name": "Example backend service" }
 }
 ```
 
