@@ -15,6 +15,13 @@ const collectionName = 'raw-form-submissions'
 const referenceNumber = 'TEST-REF-001'
 const formId = 'test-form-id'
 
+function createMessage (answer, messageId = `message-${Math.random().toString(36).substring(2, 15)}`) {
+  return {
+    MessageId: messageId,
+    Body: createBody(answer)
+  }
+}
+
 function createBody (answer = 'first test value') {
   return JSON.stringify({
     meta: {
@@ -51,68 +58,51 @@ describe('#insertRawFormSubmission', () => {
   })
 
   test('Stores the complete original body', async () => {
-    const body = createBody()
+    const message = createMessage()
 
-    await insertRawFormSubmission(server, body)
+    const insertedId = await insertRawFormSubmission(server, message)
 
-    const storedSubmission = await collection.findOne({ referenceNumber })
+    const storedSubmission = await collection.findOne({ messageId: insertedId.messageId })
 
-    expect(storedSubmission.referenceNumber).toBe(referenceNumber)
-    expect(storedSubmission.formId).toBe(formId)
+    expect(insertedId.messageId).toEqual(storedSubmission.messageId)
     expect(storedSubmission.receivedAt).toBeInstanceOf(Date)
-    expect(storedSubmission.body).toBe(body)
+    expect(storedSubmission.body).toBe(message.Body)
   })
 
   test('Does not duplicate or overwrite a record delivered twice', async () => {
-    const firstBody = createBody('first test value')
-    const secondBody = createBody('changed test value')
+    const firstMessage = createMessage('first test value')
+    const secondMessage = createMessage('changed test value', firstMessage.MessageId)
 
-    await insertRawFormSubmission(server, firstBody)
-    await insertRawFormSubmission(server, secondBody)
+    const fistStoredSubmission = await insertRawFormSubmission(server, firstMessage)
+    const secondStoredSubmission = await insertRawFormSubmission(server, secondMessage)
+    expect(fistStoredSubmission.messageId).toEqual(secondStoredSubmission.messageId)
 
     const storedSubmissions = await collection
-      .find({ referenceNumber })
+      .find({ messageId: firstMessage.MessageId })
       .toArray()
 
     expect(storedSubmissions).toHaveLength(1)
-    expect(storedSubmissions[0].body).toBe(firstBody)
+    expect(storedSubmissions[0].body).toBe(firstMessage.Body)
   })
 
-  test('Enforces a unique reference number at the database level', async () => {
-    const firstBody = createBody('first test value')
-    const secondBody = createBody('changed test value')
+  test('Enforces a unique message ID at the database level', async () => {
+    const firstMessage = createMessage('first test value')
+    const secondMessage = createMessage('changed test value', firstMessage.MessageId)
 
-    await insertRawFormSubmission(server, firstBody)
+    await insertRawFormSubmission(server, firstMessage)
 
     await expect(collection.insertOne({
-      referenceNumber,
-      formId,
+      messageId: secondMessage.MessageId,
       receivedAt: new Date(),
-      body: secondBody
+      body: secondMessage
     })).rejects.toThrow(/E11000|duplicate key/i)
 
     const storedSubmissions = await collection
-      .find({ referenceNumber })
+      .find({ messageId: firstMessage.MessageId })
       .toArray()
 
     expect(storedSubmissions).toHaveLength(1)
-    expect(storedSubmissions[0].body).toBe(firstBody)
-  })
-
-  test('Rejects malformed JSON without storing it', async () => {
-    expect(() => insertRawFormSubmission(server, '{invalid')).toThrow()
-
-    expect(await collection.countDocuments()).toBe(0)
-  })
-
-  test('Rejects a submission without a reference number', async () => {
-    const body = JSON.stringify({ meta: { formId } })
-
-    expect(() => insertRawFormSubmission(server, body)).toThrow(
-      'Form submission is missing meta.referenceNumber'
-    )
-
-    expect(await collection.countDocuments()).toBe(0)
+    expect(storedSubmissions[0].body).toBe(firstMessage.Body)
   })
 
   test('Propagates a MongoDB failure', async () => {
@@ -121,11 +111,14 @@ describe('#insertRawFormSubmission', () => {
     const server = {
       db: {
         collection: vi.fn().mockReturnValue({ updateOne })
+      },
+      logger: {
+        error: vi.fn()
       }
     }
 
     await expect(
-      insertRawFormSubmission(server, createBody())
+      insertRawFormSubmission(server, createMessage())
     ).rejects.toThrow('Database unavailable')
   })
 })
