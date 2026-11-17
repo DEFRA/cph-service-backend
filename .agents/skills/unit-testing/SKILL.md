@@ -82,7 +82,7 @@ function createRequest (overrides = {}) {
   return {
     payload: { cph: '12/345/6789' },
     logger: { info: vi.fn(), error: vi.fn() },
-    db: { collection: vi.fn(() => ({ insertOne: vi.fn().mockResolvedValue({ insertedId: 'abc' }) })) },
+    db: createDb({ insertOne: vi.fn().mockResolvedValue({ insertedId: 'abc' }) }),
     ...overrides
   }
 }
@@ -99,14 +99,14 @@ describe('createCph', () => {
 
     await createCph(request, h)
 
-    expect(request.db.collection().insertOne).toHaveBeenCalledWith(request.payload)
+    expect(request.db._collection.insertOne).toHaveBeenCalledWith(request.payload)
     expect(h._response.code).toHaveBeenCalledWith(201)
     expect(h._response.header).toHaveBeenCalledWith('Location', '/api/cphs/abc')
   })
 
   test('logs and throws a 500 when the insert fails', async () => {
     const insertOne = vi.fn().mockRejectedValue(new Error('db down'))
-    const request = createRequest({ db: { collection: () => ({ insertOne }) } })
+    const request = createRequest({ db: createDb({ insertOne }) })
 
     await expect(createCph(request, createResponseToolkit())).rejects.toMatchObject({
       isBoom: true,
@@ -117,7 +117,7 @@ describe('createCph', () => {
 })
 ```
 
-Note `request.db.collection()` in the first test returns a new object on each call in this sketch. When asserting on a collection stub, create the collection object once in the factory and return the same reference.
+`createDb` (see "Stub the Mongo `db`") returns the same collection object on every `collection()` call and exposes it as `_collection`, so assert on `request.db._collection`. Define `createDb` in the test file, or import it if it's shared.
 
 ### Many inputs, one behaviour
 
