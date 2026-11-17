@@ -194,6 +194,7 @@ describe('#processMessage', () => {
 
     server.db.rawCollection.findOne.mockResolvedValue({
       _id: 'test-raw-submission-id',
+      messageID: 'test-raw-submission-id',
       receivedAt: new Date('2026-10-08T08:39:38.363Z'),
       body: message.Body
     })

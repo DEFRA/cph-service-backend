@@ -94,7 +94,7 @@ describe('#insertRawFormSubmission', () => {
     await expect(collection.insertOne({
       messageId: secondMessage.MessageId,
       receivedAt: new Date(),
-      body: secondMessage
+      body: secondMessage.Body
     })).rejects.toThrow(/E11000|duplicate key/i)
 
     const storedSubmissions = await collection
