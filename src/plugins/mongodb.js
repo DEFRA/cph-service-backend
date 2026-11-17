@@ -60,7 +60,7 @@ async function createIndexes (db) {
 
   await db
     .collection('raw-form-submissions')
-    .createIndex({ referenceNumber: 1 }, { unique: true })
+    .createIndex({ messageId: 1 }, { unique: true })
 
   await db
     .collection('cph-sequences')

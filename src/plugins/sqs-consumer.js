@@ -91,18 +91,11 @@ export async function processMessage (
   server,
   message
 ) {
+  let rawSubmission = null
   try {
-    await insertRawFormSubmission(server, message.Body)
-    const submission = JSON.parse(message.Body)
-    const rawSubmission = await server.db.collection('raw-form-submissions')
-      .findOne({
-        referenceNumber: submission.meta.referenceNumber
-      })
+    rawSubmission = await insertRawFormSubmission(server, message)
 
-    if (!rawSubmission) {
-      throw new Error('Stored raw submission not found')
-    }
-
+    // InsertDraftCphRecord needs to be decoupled from raw submission insertion See CPH-141
     await insertDraftCphRecord(server, rawSubmission)
   } catch (error) {
     server.logger.error(

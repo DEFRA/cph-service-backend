@@ -131,20 +131,19 @@ describe('#processMessage', () => {
     }
     const message = createMessage()
 
-    server.db.rawCollection.findOne.mockResolvedValue({
+    insertRawFormSubmission.mockResolvedValue({
       _id: 'test-raw-submission-id',
+      messageID: 'test-raw-submission-id',
       receivedAt: new Date('2026-10-08T08:39:38.363Z'),
       body: message.Body
     })
 
     await processMessage(client, queueUrl, server, message)
 
-    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message.Body)
-    expect(server.db.rawCollection.findOne).toHaveBeenCalledWith({
-      referenceNumber: 'TEST-REF-001'
-    })
+    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message)
     expect(insertDraftCphRecord).toHaveBeenCalledWith(server, {
       _id: 'test-raw-submission-id',
+      messageID: 'test-raw-submission-id',
       receivedAt: new Date('2026-10-08T08:39:38.363Z'),
       body: message.Body
     })
@@ -173,29 +172,13 @@ describe('#processMessage', () => {
 
     await processMessage(client, queueUrl, server, message)
 
-    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message.Body)
+    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message)
     expect(insertDraftCphRecord).not.toHaveBeenCalled()
     expect(client.send).not.toHaveBeenCalled()
     expect(server.logger.error).toHaveBeenCalledWith(
       databaseError,
       'Failed to store SQS message test-message-id; message not deleted'
     )
-  })
-
-  test('Does not delete a malformed SQS message', async () => {
-    const client = { send: vi.fn() }
-    const server = {
-      db: createDb(),
-      logger: createLogger()
-    }
-    const message = createMessage('{invalid}')
-
-    await processMessage(client, queueUrl, server, message)
-
-    expect(insertRawFormSubmission).toHaveBeenCalledWith(server, message.Body)
-    expect(insertDraftCphRecord).not.toHaveBeenCalled()
-    expect(client.send).not.toHaveBeenCalled()
-    expect(server.logger.error).toHaveBeenCalled()
   })
 
   test('Logs an SQS deletion failure after successful storage', async () => {
@@ -211,6 +194,7 @@ describe('#processMessage', () => {
 
     server.db.rawCollection.findOne.mockResolvedValue({
       _id: 'test-raw-submission-id',
+      messageID: 'test-raw-submission-id',
       receivedAt: new Date('2026-10-08T08:39:38.363Z'),
       body: message.Body
     })
@@ -233,14 +217,15 @@ describe('#processMessage', () => {
     const retained = JSON.parse(createBody())
     retained.data.main.vumpmr = ['Cattle']
 
-    server.db.rawCollection.findOne.mockResolvedValue({
+    const incoming = JSON.parse(createBody())
+    incoming.data.main.vumpmr = ['Sheep']
+
+    insertRawFormSubmission.mockResolvedValue({
       _id: 'test-raw-submission-id',
+      messageID: 'test-raw-submission-id',
       receivedAt: new Date('2026-10-08T08:39:38.363Z'),
       body: JSON.stringify(retained)
     })
-
-    const incoming = JSON.parse(createBody())
-    incoming.data.main.vumpmr = ['Sheep']
 
     await processMessage(
       client,
@@ -249,11 +234,9 @@ describe('#processMessage', () => {
       createMessage(JSON.stringify(incoming))
     )
 
-    expect(server.db.rawCollection.findOne).toHaveBeenCalledWith({
-      referenceNumber: 'TEST-REF-001'
-    })
     expect(insertDraftCphRecord).toHaveBeenCalledWith(server, {
       _id: 'test-raw-submission-id',
+      messageID: 'test-raw-submission-id',
       receivedAt: new Date('2026-10-08T08:39:38.363Z'),
       body: JSON.stringify(retained)
     })

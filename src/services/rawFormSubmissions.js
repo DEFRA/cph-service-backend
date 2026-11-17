@@ -1,23 +1,22 @@
 const collectionName = 'raw-form-submissions'
 
-export function insertRawFormSubmission (server, body) {
-  const submission = JSON.parse(body)
-  const referenceNumber = submission?.meta?.referenceNumber
+export async function insertRawFormSubmission (server, message) {
+  try {
+    await server.db.collection(collectionName).updateOne(
+      { messageId: message.MessageId },
+      {
+        $setOnInsert: {
+          messageId: message.MessageId,
+          receivedAt: new Date(),
+          body: message.Body
+        }
+      },
+      { upsert: true }
+    )
 
-  if (typeof referenceNumber !== 'string' || !referenceNumber.trim()) {
-    throw new Error('Form submission is missing meta.referenceNumber')
+    return await server.db.collection(collectionName).findOne({ messageId: message.MessageId })
+  } catch (error) {
+    server.logger.error(error, 'Failed to insert raw form submission')
+    throw error
   }
-
-  return server.db.collection(collectionName).updateOne(
-    { referenceNumber },
-    {
-      $setOnInsert: {
-        referenceNumber,
-        formId: submission.meta.formId,
-        receivedAt: new Date(),
-        body
-      }
-    },
-    { upsert: true }
-  )
 }
