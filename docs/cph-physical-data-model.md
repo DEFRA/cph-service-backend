@@ -295,7 +295,7 @@ Role labels follow the supplied LDM. Stored values remain subject to agreement.
 }
 ```
 
-This fragment represents a person. Organisation fields are considered below. Contacts, addresses and inherited party identifiers require further design.
+This fragment represents a person. Organisation fields are considered below. Contacts, addresses and inherited party identifiers require further design (see Party identifiers and customer linkage).
 
 Whether parties should be shared across CPH records through references remains an open decision.
 
@@ -397,6 +397,44 @@ Open questions for Tagem and requirements confirmation (Tagem):
 - Should Establishment Type use a controlled list of values?
 - How will Organisation Type values be supplied and maintained?
 
+### Party identifiers and customer linkage
+
+In the supplied XSD, `Party` extends `Identified Item` (lines 465 and 470), and `Person` and `Organisation` extend `Party` (lines 547 and 416). Every party therefore inherits the following from `Identified Item` (lines 348 to 386):
+
+| XSD element | XSD type | Occurrence | Line |
+| --- | --- | --- | --- |
+| `Identifier` | `Identifier` | 1 | 368 |
+| `Alternate Identifier` | `Identifier` | 0..unbounded | 353 |
+
+`County Parish Holding` extends the same `Identified Item` (lines 91 and 96), so a CPH also has one `Identifier` and any number of `Alternate Identifier` values.
+
+The documentation for `Identifier` (line 370) says it "consists of an Identify Type and Identifier Value" and that it is typically a system identifier but may hold business identifiers. The documentation for `Alternate Identifier` (line 355) says an entity can have more than one identifier in addition to the main one. It gives CRN, NI Number and Passport Number as examples of identifiers of a Person.
+
+The XSD references `Identifier` as a type (lines 13, 353 and 368) but the inspected export contains no definition for it. The structure is therefore described in prose only. Its member names, types, occurrences and permitted identifier types are not established by the XSD.
+
+Following Tagem's feedback, the proposed allocated CPH must identify its CPH Holder and retain the applicable customer identifiers that link that holder to RPA or SAM. The XSD supports this through the `CPHParty` element (line 126), the `CPH Holder` role (line 267) and the inherited `Alternate Identifier`. The backend as inspected at commit `f2ef793` does not store parties or customer identifiers, so it does not retain this linkage. This is an implementation gap against the proposed model.
+
+The following is proposed and not agreed:
+
+- `identifier` is an embedded object with string properties `type` and `value`.
+- `alternateIdentifiers` is an array of objects with the same string properties.
+- The choice of main `identifier` is a proposal. The example uses a placeholder value, and the XSD does not say whether it is a system or a business identifier.
+- Not every holder is expected to have every customer identifier. Which apply to a given holder is a mapping question.
+
+Mappings requiring confirmation:
+
+| Identifier | What the XSD establishes | Confirmation needed |
+| --- | --- | --- |
+| CRN | Named in prose as an example Alternate Identifier of a Person (line 355). No element, type or enumeration. | Whether CRN applies to Organisation holders. The form captures CRN (`cMRAGl`) only after a yes/no question (`WHYPeQ`), see the form field mapping. |
+| SBI | Not defined or mentioned. | Whether it is an Alternate Identifier, and whether it belongs to the holder, the Organisation or the CPH. The form captures it as `PTNfVG`. |
+| SAM customer number | Not defined or mentioned. | Whether it is a separate identifier or the same value as CRN, and the identifier type label to use. |
+
+The example allocated record below shows a synthetic CRN for Alex as an illustration of the proposed shape. SBI and SAM customer number are not assigned to Alex or to any Organisation, because there is no supporting evidence for doing so.
+
+Contact details are also inherited through `Party`: `partyEmailAddress`, `partyPostalAddress` and `partyPhoneNumber`, each 0..unbounded (lines 472 to 474). The note in the `Person` documentation (line 544) that contact details are outside the Person entity refers to the Person type itself. `contacts` and `addresses` on an embedded party remain proposals.
+
+Decision needed: `Identified Item` requires `Created By`, `Created Date`, `Modified By` and `Modified Date` (lines 358 to 378, each 1), and these apply to every party. The examples carry audit fields only on the CPH record. Confirm whether embedded parties need their own audit fields or whether the record-level fields are sufficient.
+
 ## Proposed allocated CPH structure
 
 The XSD defines `Permanent CPH` as an extension of `County Parish Holding` with no additional fields. The base type allows `CPH Number` to be absent and requires `CPH Type` (`xs:string`, 1), `Start Date` (`xs:dateTime`, 1) and `CPHLifeCycleState` (1).
@@ -412,9 +450,11 @@ Assumptions for review:
 - `"Active"` is the status set on successful permanent allocation. `startDate` is shown as a BSON Date corresponding to the XSD's `xs:dateTime`. The implementation stores an ISO 8601 string.
 - `expectedArrivalDate` is shown as a `YYYY-MM-DD` string corresponding to the XSD's `xs:date`. The implementation stores a `{ year, month, day }` object.
 - `parties` uses the proposed Person and Organisation fields and the proposed `roles` array of strings. The parties array shows one Person with multiple roles. Each role is represented as a strng.
+- The party identified by the `"CPH Holder"` role is the holder to which the CPH is allocated. `identifier` and `alternateIdentifiers` on it are proposed property names. The choice of main identifier is a proposal. The CRN is synthetic. SBI and SAM customer number are not shown (see Party identifiers and customer linkage).
+- `partyRole` and `CPHPartyRole` remain an open question (see Role representation and LDM alignment). The `roles` array does not settle it.
 - `contacts` and `addresses` within a party are assumptions. Their property names, types and whether they are embedded are not agreed. Contact and address design is outstanding (see Remaining design work).
 - Audit fields follow the existing `createdAt`, `createdBy`, `modifiedAt` and `modifiedBy` types. After allocation, `modifiedAt` and `modifiedBy` equal the `created*` values, as the implementation has no later update path.
--- `startDate` is shown as a proposed BSON Date, corresponding to the XSD's `xs:dateTime`. The implementation stores an ISO 8601 string. The business meaning and source of the value require agreement. Confirm whether `startDate` represents the allocation timestamp or the date holding becomes effective.
+- `startDate` is shown as a proposed BSON Date, corresponding to the XSD's `xs:dateTime`. The implementation stores an ISO 8601 string. The business meaning and source of the value require agreement. Confirm whether `startDate` represents the allocation timestamp or the date holding becomes effective.
 
 ```json
 {
@@ -454,6 +494,10 @@ Assumptions for review:
             "firstName": "Alex",
             "lastName": "Example",
             "birthDate": "1980-01-01",
+            "identifier": { "type": "Party ID", "value": "EXAMPLE-PARTY-0001" },
+            "alternateIdentifiers": [
+                { "type": "CRN", "value": "1100000001" }
+            ],
             "roles": ["CPH Holder", "Primary Contact Person", "Land Owner"],
             "contacts": [
                 { "contactType": "Email", "value": "alex.example@example.invalid" },
@@ -523,6 +567,8 @@ Open decisions:
 - Confirm how MongoDB document identifiers relate to the LDM's Identifier concept.
 - Confirm how alternate or business identifiers should be represented.
 - Confirm whether embedded parties and locations require their own stable identifiers.
+- Confirm the definition of the LDM `Identifier` type, which is missing from the inspected export.
+- Confirm the mapping and identifier type labels for CRN, SBI and SAM customer number, and which apply to each kind of CPH Holder.
 - Confirm whether creation and modification fields provide sufficient audit information.
 - Confirm the storage arrangement for audit history and business text.
 - Confirm how audit fields should be maintained during allocation.
