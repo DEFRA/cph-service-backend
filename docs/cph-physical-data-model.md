@@ -2,7 +2,7 @@
 
 Status: Proposal for review under CPH-116.
 
-This design covers Draft and allocated CPH records, subject to scope confirmation. It starts from the existing `cph-records` structure and the LDM dated 29 September 2026. The currency of that LDM remains to be confirmed.
+This design covers Draft, Manual Review and allocated (Active) CPH records, subject to scope confirmation. It starts from the existing `cph-records` structure and the LDM dated 29 September 2026. The currency of that LDM remains to be confirmed.
 
 Examples use synthetic data. Proposed fields and relationships remain subject to review and agreement.
 
@@ -12,7 +12,8 @@ This document proposes a MongoDB physical data model to help developers implemen
 
 It covers:
 
-- Example Draft and allocated CPH data.
+- Example Draft, Manual Review and allocated CPH data.
+- How applicant, party, contact, address and customer identifier details from the submitted form are represented across those states.
 - Field names and storage types.
 - Fields available after mapping, enrichment or allocation.
 - Proposed embedding and reference arrangements.
@@ -21,7 +22,9 @@ It covers:
 
 The design needs to align with CPH-115, which records the mapping from DEFRA Forms answers to the CPH model.
 
-Implementation of additional mappings, allocation logic and validation rules requires separate agreement.
+Implementation of additional mappings, allocation logic and validation rules requires separate agreement. Business process (for example who may hold a CPH, or when an application is allocated or rejected) and detailed validation rules are outside this physical design.
+
+Two kinds of content are kept apart throughout. **Inspected backend baseline** means what the service stores at commit `f2ef793`. **Proposed** means a design for review that the backend does not implement.
 
 ## Existing implementation baseline
 
@@ -92,11 +95,13 @@ Record insertion uses an upsert matched on `source.rawSubmissionId` with `$setOn
 
 This baseline reflects the code at commit `f2ef793`. It should be checked against the implementation when this proposal is reviewed.
 
-## Document examples - existing structure
+## Document examples - inspected backend baseline
+
+The three examples in this section are the **inspected backend baseline** and not the proposed design. None contains `parties`, `locations` or customer identifiers. Proposed Draft, Manual Review and Active examples are under Proposed Draft and Manual Review structures and Proposed allocated CPH structure.
 
 Synthetic examples of the stored structure at commit `f2ef793`, using MongoDB Extended JSON to show ObjectId and BSON date types. `expectedArrivalDate` is shown as the `{ year, month, day }` object that the implementation stores.
 
-### Draft (renter, not allocated)
+### Baseline Draft (renter, not allocated)
 
 A renter whose landowner already has a CPH number does not meet the permanent allocation conditions, so the record stays `"Draft"`.
 
@@ -137,7 +142,7 @@ A renter whose landowner already has a CPH number does not meet the permanent al
 }
 ```
 
-### Active (permanent CPH allocated)
+### Baseline Active (permanent CPH allocated)
 
 Allocation has already succeeded when this document is first written. There is no earlier Draft version of it.
 
@@ -179,9 +184,9 @@ Allocation has already succeeded when this document is first written. There is n
 
 For an owner, `tenancyAgreementMoreThanOneYear` and `landownerHasCphNumber` are not required by validation. Whether they are absent or stored as `null` in that case has not been verified against a stored document.
 
-### Manual Review (body validation failure)
+### Baseline Manual Review (body validation failure)
 
-When body validation fails, the record has no `livestockInformation` and is not allocated.
+This example shows a body validation failure. In that case, and when the body cannot be parsed, mapping does not run, so the record has no `livestockInformation` and is not allocated. A record also becomes `"Manual Review"` when processing throws after mapping succeeded, for example a parish lookup failure. That record keeps its mapped `livestockInformation` and has a `validationErrors` entry for the failure. In every case the baseline record has no parties.
 
 ```json
 {
@@ -435,6 +440,231 @@ Contact details are also inherited through `Party`: `partyEmailAddress`, `partyP
 
 Decision needed: `Identified Item` requires `Created By`, `Created Date`, `Modified By` and `Modified Date` (lines 358 to 378, each 1), and these apply to every party. The examples carry audit fields only on the CPH record. Confirm whether embedded parties need their own audit fields or whether the record-level fields are sufficient.
 
+## Proposed Draft and Manual Review structures
+
+This section is a proposal. The inspected backend does not populate the proposed party, contact, address or customer identifier fields. Some source, audit and livestock fields are already implemented (see the baseline). Tagem clarified that a Draft should hold all submitted-form information needed to create the CPH, including applicant and person details, applicable business details, party roles, contacts, addresses and customer identifiers. That information stays represented in the Active and Manual Review records, and Tagem accepts the party structure above as a starting point that can evolve.
+
+### Applicant, CPH Holder and service audit actor
+
+These are three different things and the model keeps them apart.
+
+| Concept | Proposed representation | Notes |
+| --- | --- | --- |
+| Applicant | The person who completed the form. Proposed: a `parties` entry, identified by a record-local `partyKey` string and named by a top-level `applicantPartyKey` | `CPHPartyRole` has no applicant value, so `roles` cannot mark the applicant. The general `Party Role` documentation (line 509) lists Applicant in its taxonomy, but the `CPH Party Role` enumeration does not. Alternative for review: add an applicant value to the CPH role values. The form asks for the applicant's own name, contact details and identifiers |
+| CPH Holder | The party whose `roles` contain `"CPH Holder"` | May be the applicant, a business, or another party. The model must not assume it is the applicant. Which submitted party is the holder is a mapping decision under CPH-115, and the role is only recorded once that mapping is agreed |
+| Service audit actor | `createdBy` and `modifiedBy` (`{ identifier, name }`) | The examples use the backend service actor, as the baseline does. These audit fields do not identify the applicant or the CPH Holder, and are not `parties` entries |
+
+Open: whether `partyKey` and `applicantPartyKey` are wanted, or the applicant should be represented another way.
+
+### Shared party structure across lifecycle states
+
+Draft, Manual Review and Active records use one embedded `parties` structure. The fields are the same in every state. Only completeness differs.
+
+| Part of the structure | Proposed properties | Draft | Manual Review | Active |
+| --- | --- | --- | --- | --- |
+| Party identity | `partyKey`, `partyType`, Person fields, Organisation fields (see the field tables above) | Present for the parties mapped from the form | Present for whatever was parsed and mapped | Present, with the minimum needed for allocation still to be confirmed |
+| Roles | `roles` array of strings | Present once the role mapping is agreed | As Draft | Present, including the `"CPH Holder"` party |
+| Contacts | `contacts` | Present for mapped phone and email answers | As available | Present |
+| Addresses | `addresses` | Present for mapped address answers | As available | Present |
+| Customer identifiers | `identifier`, `alternateIdentifiers` | Present for mapped SBI and CRN answers | As available | Present for the holder, per the Party identifiers section |
+| Applicant link | `partyKey` on each party and `applicantPartyKey` on the record | Present | Present if the applicant could be identified | Present |
+
+The Active column is shown in the complete allocated example under Proposed allocated CPH structure. The Draft and Manual Review examples below use the same property names.
+
+Contacts and addresses extend the starting structure with the XSD's `Party Postal Address` and the `Email Address` and `Phone Number` types (lines 472 to 474). Properties below are proposals:
+
+| Proposed property | Storage type | XSD basis | Status |
+| --- | --- | --- | --- |
+| `contacts[].contactType` | String (`"Email"` or `"Telephone"` in the examples) | Separate `partyEmailAddress` and `partyPhoneNumber` elements | Open. Whether to keep one `contacts` array or split by type |
+| `contacts[].value` | String | `Email Address URL`, `Telephone Number` | Open |
+| `addresses[].addressType` | String | `Party Address Type` (required, `xs:string`, e.g. Home, Business, Correspondence) | Proposed. Values open |
+| `addresses[].addressLine1`, `addressLine2`, `town`, `county`, `postcode` | String | `Postal Address` has `Street` (required), `Town / City`, `County`, `Postcode` and others. It has no address line elements | Property names follow the address shape in `scripts/sqs-messages/permanent-landowner.js`. Mapping `addressLine1`/`addressLine2` to `Street` is not confirmed. `Country` is required in the XSD and is not captured by the form answers inspected |
+| Valid From and Valid To dates | Not represented | Required (1) on `Email Address` and `Phone Number` (lines 320 and 614). Not present on `Party Postal Address` | Open. Not proposed until the requirement is confirmed |
+| Principal indicators | Not represented | Optional on `Email Address` and `Phone Number` | Open. Which phone or email is principal is not stated by the form |
+
+### Form field trace for party information
+
+The tables trace answer keys in [create-cph-form-field-mapping.md](./create-cph-form-field-mapping.md) (DEV definition, form version 2) to proposed physical fields. Rows say "Open" where the mapping is not confirmed. That inventory is not an approved mapping, and nothing here is implemented. Livestock, species and ear tag answers are outside this trace and follow the CPH-115 mapping.
+
+| Form answer (key, page) | Proposed physical field | Status |
+| --- | --- | --- |
+| Applicant name: `TKsWbP`, `iyutEh`, `ByUqQW`, `GDYfTS` (`/whats-the-name-of-the-applicant`) and `QvSFQU`, `fGBFPv`, `BzFtpG`, `HEHgbQ` (`/whats-your-name`) | Applicant party `title`, `firstName`, `middleName`, `lastName` | Field alignment follows the Person table. The form does not state whether Title is a salutation or job title. Which page applies to which applicant type is not stated in the field inventory (the sample message script uses `/whats-your-name` for a hobbyist) |
+| `FsSpLA` hobbyist keeper or business | Possibly `partyType` of the holder | Open |
+| `JGLmzy` aged 18 or older | None proposed | Open |
+| Business name `lWzdhw` | Organisation party `organisationName` | Open: Organisation Name versus Legal Name is undecided |
+| Legal status `yHQAol`, `MfzkDz` | `legalStatus` | Open: value mapping |
+| Charity number `ifygYY` (number field) | `charityNumber` (string) | Open: the form field is a number and the XSD requires a string, so leading zeros and conversion are undecided |
+| Company number `nNNsgO` | None | Open: the XSD Organisation has no company number field |
+| Business type `hCxIFa`, purpose `AoofuF`, `luoxoh`, collection centre, market, showground or zoo `VkbHQu` | `organisationType.name`, `establishmentType` | Open: which answer feeds which field is not confirmed |
+| Phone numbers `aEFhyW`, `tmSOkR` | `contacts[]` with `contactType` `"Telephone"` | Which party owns the phone numbers is open. The question is asked of the applicant |
+| Email `uZcVcc` | `contacts[]` with `contactType` `"Email"` | As above |
+| Business address `SJmeaZ`, home address `hpmkrN`, same-address flag `LlcVhf` | `addresses[]` with `addressType` | Open: address type values, and which party owns each address |
+| Livestock address `PXRMtw`, `BToHwu`, `RdCZhq` | A location address | Open. The XSD has `CPHLocationPostalAddress` (line 237). See Open location decisions |
+| Easting and northing `UOmNur` | `locations[].geometry` | As in the location section |
+| Land owned `rOgnUv`, tenancy `qLmGSL`, landowner CPH `uuQMUp` | `livestockInformation` fields in the baseline. XSD location has Tenant Indicator and Tenancy Agreement One Year Indicator | Whether these also set the `"Land Owner"` role is open |
+| Second contact `iszBCF`, `yQiBlu`, `vCcTAU`, `MtBoTP`, `QZNQVn`, `JdIhbf`, `RHkcga`, `JiLYDB`, `YnSTrb` | A party with role `"Secondary Contact Person"` | Open. The role exists in the XSD. The mapping is not confirmed |
+| Species keeper details, for example `XBhudw`, `izZaaM`, `HjoTVk`, `daTXkI`, `FzYNoF` (cattle) | A party with role `"Keeper"`, or the applicant when the same-as answer is yes | Open. The form gives one "First and last name" field, so splitting into `firstName` and `lastName` is not safe and is not assumed |
+| SBI `PTNfVG` | `alternateIdentifiers[]` | Open: the type label, and whether it belongs to the applicant, the Organisation or the CPH |
+| CRN `WHYPeQ`, `cMRAGl` | `alternateIdentifiers[]` with type `"CRN"` | Open: which party it belongs to. `cMRAGl` exists only when `WHYPeQ` is yes |
+| RPA registration `zcjEtV` | None proposed | Open |
+| Memorable date, event and town `TTQnaU`, `JEmnQb`, `DUrooj` | None proposed | Open: these look like account security answers. Whether any is needed is not confirmed |
+
+There is no SAM customer number question in the inspected form, so the model does not assign one from the form. The SAM mapping remains open (see Party identifiers and customer linkage).
+
+### Proposed Draft example
+
+A renter whose landowner has a CPH number, matching the baseline Draft. Here the applicant (Sam Applicant) and the CPH Holder (the Organisation) are different parties. The example illustrates the shape only. That the business is the holder, and that the CRN and SBI belong to these parties, are not confirmed (see the trace above). `cphNumber` is empty, there is no `startDate`, and county and parish are absent because allocation has not looked them up. All values are synthetic.
+
+```json
+{
+    "_id": { "$oid": "000000000000000000000011" },
+    "cphNumber": "",
+    "lifecycleStatus": "Draft",
+    "source": {
+        "rawSubmissionId": { "$oid": "000000000000000000000012" },
+        "applicationReference": "EXAMPLE-004",
+        "formId": "example-create-form",
+        "formVersion": 2,
+        "submittedAt": { "$date": "2026-10-27T09:30:00.000Z" },
+        "receivedAt": { "$date": "2026-10-27T09:30:01.000Z" }
+    },
+    "livestockInformation": {
+        "types": ["Cattle"],
+        "expectedArrivalDate": "2026-11-10",
+        "landOwned": false,
+        "tenancyAgreementMoreThanOneYear": true,
+        "landownerHasCphNumber": true
+    },
+    "locations": [
+        {
+            "geometry": {
+                "easting": 400000,
+                "northing": 300000
+            }
+        }
+    ],
+    "applicantPartyKey": "party-1",
+    "parties": [
+        {
+            "partyKey": "party-1",
+            "partyType": "Person",
+            "firstName": "Sam",
+            "lastName": "Applicant",
+            "roles": [],
+            "alternateIdentifiers": [
+                { "type": "CRN", "value": "1100000002" }
+            ],
+            "contacts": [
+                { "contactType": "Email", "value": "sam.applicant@example.invalid" },
+                { "contactType": "Telephone", "value": "01000 000001" }
+            ],
+            "addresses": [
+                {
+                    "addressType": "Home",
+                    "addressLine1": "2 Example Lane",
+                    "town": "Exampleton",
+                    "postcode": "AB1 2CD"
+                }
+            ]
+        },
+        {
+            "partyKey": "party-2",
+            "partyType": "Organisation",
+            "organisationName": "Example Farms",
+            "legalStatus": "Limited company",
+            "roles": ["CPH Holder"],
+            "alternateIdentifiers": [
+                { "type": "SBI", "value": "100000001" }
+            ],
+            "addresses": [
+                {
+                    "addressType": "Business",
+                    "addressLine1": "3 Example Road",
+                    "town": "Exampleton",
+                    "postcode": "AB1 2CE"
+                }
+            ]
+        }
+    ],
+    "validationErrors": [],
+    "createdAt": { "$date": "2026-10-27T09:30:02.000Z" },
+    "createdBy": { "identifier": "example-service", "name": "Example backend service" },
+    "modifiedAt": { "$date": "2026-10-27T09:30:02.000Z" },
+    "modifiedBy": { "identifier": "example-service", "name": "Example backend service" }
+}
+```
+
+Notes on this example:
+
+- `roles` is an empty array for the applicant, who holds no CPH role in this example. An applicant who is also the holder would have `["CPH Holder"]` on the same party that `applicantPartyKey` names.
+- The `identifier` property is omitted because the main identifier remains open (see Party identifiers and customer linkage).
+- `legalStatus` and `organisationName` values are synthetic. The Organisation required fields in the XSD (`charityNumber`, `legalName`, `organisationType`) are not shown. Draft-stage completeness is open.
+- `livestockInformation` uses the proposed `YYYY-MM-DD` string for `expectedArrivalDate` and `locations` carries the coordinates, as in the allocated example. The baseline stores neither shape.
+- The retained Draft stays linked to the raw submission through `source.rawSubmissionId`.
+
+### Manual Review when mapping or parsing is incomplete
+
+In the baseline, a Manual Review record has no parties. It has no `livestockInformation` when body validation or parsing prevented mapping, and keeps it when processing failed after successful mapping. The proposal is:
+
+- Keep the original submission linked through `source.rawSubmissionId`. The raw `body` remains the complete record of what was submitted.
+- Populate the shared structure only with values that were parsed and mapped. Leave out party properties that could not be mapped. Do not infer or generate values such as `firstName`, `lastName` or roles.
+- A submitted answer with no agreed mapping, or that could not be parsed (for example the single "First and last name" keeper field), is not copied into a party. It remains available in the linked raw submission. No party entry is created only to hold such an answer.
+- Record the reason in `validationErrors` as in the baseline.
+- If parsing fails entirely, the record keeps only source, audit and error information, as in the baseline.
+
+Illustrative proposal. Only the applicant was mapped, so only that party is stored. Other answers, such as the keeper's single-field name, stay in the raw submission. Values are synthetic.
+
+```json
+{
+    "_id": { "$oid": "000000000000000000000013" },
+    "cphNumber": "",
+    "lifecycleStatus": "Manual Review",
+    "source": {
+        "rawSubmissionId": { "$oid": "000000000000000000000014" },
+        "applicationReference": "EXAMPLE-005",
+        "formId": "example-create-form",
+        "formVersion": 2,
+        "submittedAt": { "$date": "2026-10-27T11:30:00.000Z" },
+        "receivedAt": { "$date": "2026-10-27T11:30:01.000Z" }
+    },
+    "applicantPartyKey": "party-1",
+    "parties": [
+        {
+            "partyKey": "party-1",
+            "partyType": "Person",
+            "firstName": "Sam",
+            "lastName": "Applicant",
+            "roles": [],
+            "contacts": [
+                { "contactType": "Email", "value": "sam.applicant@example.invalid" }
+            ]
+        }
+    ],
+    "validationErrors": [
+        {
+            "timestamp": "2026-10-27T11:30:02.000Z",
+            "failure": "\"data.main.vumpmr\" is required",
+            "context": {}
+        }
+    ],
+    "createdAt": { "$date": "2026-10-27T11:30:02.000Z" },
+    "createdBy": { "identifier": "example-service", "name": "Example backend service" },
+    "modifiedAt": { "$date": "2026-10-27T11:30:02.000Z" },
+    "modifiedBy": { "identifier": "example-service", "name": "Example backend service" }
+}
+```
+
+### Active
+
+The complete proposed Active example is under Proposed allocated CPH structure. It uses the same `parties` property names. It shows a Person who holds several roles and is both the applicant and the CPH Holder in that scenario.
+
+Open decisions for these structures:
+
+- Confirm `partyKey` and `applicantPartyKey`, or replace them.
+- Confirm the draft test fixture in `src/test/fixtures/draft-cph.example.json`, which uses nested `name` and `contact` objects, is superseded by the flat party properties and `contacts` and `addresses` arrays proposed here, or the other way round.
+- Confirm the minimum party information for Draft, Manual Review and allocation.
+- Confirm the party ownership of each contact, address and identifier in the trace above.
+
 ## Proposed allocated CPH structure
 
 The XSD defines `Permanent CPH` as an extension of `County Parish Holding` with no additional fields. The base type allows `CPH Number` to be absent and requires `CPH Type` (`xs:string`, 1), `Start Date` (`xs:dateTime`, 1) and `CPHLifeCycleState` (1).
@@ -449,7 +679,8 @@ Assumptions for review:
 - `locations` is proposed and not implemented. The implementation stores `livestockInformation.locationEastingsAndNorthings`. County and parish are illustrative strings and are not stored by the implementation. Coordinates have not been matched to them.
 - `"Active"` is the status set on successful permanent allocation. `startDate` is shown as a BSON Date corresponding to the XSD's `xs:dateTime`. The implementation stores an ISO 8601 string.
 - `expectedArrivalDate` is shown as a `YYYY-MM-DD` string corresponding to the XSD's `xs:date`. The implementation stores a `{ year, month, day }` object.
-- `parties` uses the proposed Person and Organisation fields and the proposed `roles` array of strings. The parties array shows one Person with multiple roles. Each role is represented as a strng.
+- This synthetic example is a scenario in which the applicant is also the CPH Holder: `applicantPartyKey` references Alex's `partyKey`, and Alex has the `"CPH Holder"` role. That is an assumption of this scenario and not a general rule. The Draft example above shows an applicant who is not the holder.
+- `parties` uses the proposed Person and Organisation fields and the proposed `roles` array of strings. The parties array shows one Person with multiple roles. Each role is represented as a string.
 - The party identified by the `"CPH Holder"` role is the holder to which the CPH is allocated. `identifier` and `alternateIdentifiers` on it are proposed property names. The choice of main identifier is a proposal. The CRN is synthetic. SBI and SAM customer number are not shown (see Party identifiers and customer linkage).
 - `partyRole` and `CPHPartyRole` remain an open question (see Role representation and LDM alignment). The `roles` array does not settle it.
 - `contacts` and `addresses` within a party are assumptions. Their property names, types and whether they are embedded are not agreed. Contact and address design is outstanding (see Remaining design work).
@@ -488,8 +719,10 @@ Assumptions for review:
             }
         }
     ],
+    "applicantPartyKey": "party-1",
     "parties": [
         {
+            "partyKey": "party-1",
             "partyType": "Person",
             "firstName": "Alex",
             "lastName": "Example",
@@ -532,7 +765,7 @@ The middle column describes the implementation at commit `f2ef793`. The last col
 | Livestock information | Selected answers stored when body validation passes | Extended as further mappings are agreed |
 | Coordinates | Stored in `livestockInformation.locationEastingsAndNorthings` | Proposed `locations[].geometry` after agreed mapping |
 | County and parish | Looked up during allocation and not stored | Proposed `locations[].county` and `locations[].parish` |
-| Parties and roles | Not stored | Added through agreed mapping or review |
+| Parties, roles, contacts, addresses and customer identifiers | Not stored | Proposed in Draft, Manual Review and Active records through agreed mapping (see Proposed Draft and Manual Review structures) |
 | CPH number | Empty string. Set before the first write if permanent allocation succeeds | Format and storage remain as implemented unless changed |
 | CPH type | Not stored | Proposed `cphType`. Source and timing require agreement |
 | Start date | Set to an ISO 8601 string on permanent allocation | Proposed BSON Date. Meaning, source and timing require agreement |
